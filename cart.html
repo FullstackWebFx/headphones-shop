@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Кошик — EarStore</title>
+  <style>
+    :root{
+      --bg:#f6f8fb; --card:#fff; --muted:#7a7f88; --accent:#0b61ff; --danger:#ff6b6b;
+      --radius:12px; --shadow:0 8px 30px rgba(20,30,50,0.06);
+      --max-width:1150px;
+    }
+    body{font-family:Inter, system-ui, Arial; background:var(--bg); margin:0; color:#142032; padding:28px;}
+    .container{max-width:var(--max-width); margin:0 auto; display:flex; gap:20px; align-items:flex-start}
+    header{margin-bottom:18px}
+    a.link{color:var(--accent); text-decoration:none}
+    h1{font-size:22px;margin:0 0 8px 0}
+    /* layout */
+    .left{flex:1}
+    .right{width:320px}
+    .panel{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px}
+    /* cart list */
+    .cart-title{font-size:20px; font-weight:700; margin-bottom:12px}
+    .cart-list{display:flex; flex-direction:column; gap:14px}
+    .cart-item{display:flex; gap:18px; align-items:center; padding:18px; border-radius:10px; background:#fbfdff; border:1px solid rgba(20,30,50,0.03)}
+    .thumb-wrap{width:140px; height:140px; background:#fff; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:8px; box-shadow:0 4px 18px rgba(16,24,40,0.03)}
+    .thumb-wrap img{max-width:100%; max-height:100%; object-fit:contain; display:block}
+    .item-meta{flex:1; display:flex; flex-direction:column; gap:6px}
+    .title{font-weight:700; font-size:16px}
+    .sku{color:var(--muted); font-size:13px}
+    .price-single{color:var(--accent); font-weight:700; margin-left:8px}
+    .center-controls{display:flex; align-items:center; gap:16px; justify-content:center; min-width:320px}
+    .qty-controls{display:flex; gap:10px; align-items:center}
+    .qty-controls button{width:36px;height:36px;border-radius:8px;border:1px solid #e4e7ef;background:#fff;cursor:pointer}
+    .qty-controls input{width:64px;padding:10px;border-radius:8px;border:1px solid #e4e7ef;text-align:center;font-weight:600}
+    .subtotal{color:var(--accent); font-weight:700; min-width:90px; text-align:right}
+    .btn{padding:8px 12px;border-radius:8px;border:1px solid #e4e7ef;background:#fff; cursor:pointer}
+    .btn-danger{background:var(--danger); color:#fff; border-color:transparent}
+    .muted{color:var(--muted); font-size:13px}
+    /* summary */
+    .summary h3{margin:0 0 12px 0}
+    .summary-row{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #eef2f6}
+    .summary-row.total{font-weight:800; font-size:18px; border-top:1px solid #f1f5f9; margin-top:8px; padding-top:12px}
+    .actions{display:flex; gap:10px; margin-top:12px}
+    .primary{background:#0b61ff;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+    /* empty */
+    .empty{padding:40px;text-align:center;color:var(--muted); background:#fff;border-radius:10px; border:1px solid rgba(20,30,50,0.03)}
+    /* responsive */
+    @media (max-width:980px){
+      .container{flex-direction:column;padding:18px}
+      .right{width:100%}
+      .center-controls{min-width:auto}
+      .thumb-wrap{width:110px;height:110px}
+    }
+  </style>
+</head>
+<body>
+  <header style="max-width:var(--max-width);margin:0 auto 18px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <h1 style="margin:0">Кошик — EarStore</h1>
+      <a class="link" href="index.html" style="font-size:14px;">← Повернутися до каталогу</a>
+    </div>
+  </header>
+
+  <main class="container" aria-live="polite">
+    <section class="left">
+      <div class="panel">
+        <div class="cart-title">Товари в кошику</div>
+        <div id="cart-root" class="cart-list" aria-live="polite">
+          <!-- render items here -->
+        </div>
+        <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <button id="clear-cart" class="btn btn-danger">Очистити кошик</button>
+            <button id="checkout" class="btn" style="margin-left:8px">Оформити замовлення</button>
+          </div>
+          <div class="muted" id="footer-note" style="font-size:13px;"></div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="right">
+      <div class="panel summary">
+        <h3>Підсумок замовлення</h3>
+        <div class="summary-row"><div>Позицій</div><div id="meta-items">0</div></div>
+        <div class="summary-row"><div>Кількість</div><div id="meta-qty">0</div></div>
+        <div class="summary-row total"><div>Всього</div><div id="meta-total">0 ₴</div></div>
+        <div class="actions">
+          <button id="btn-place" class="primary">Оформити</button>
+          <button id="btn-clear" class="btn btn-danger">Очистити</button>
+        </div>
+        <p class="muted" style="margin-top:12px;font-size:13px;">
+        
+        </p>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+  (function(){
+    const STORAGE_KEYS = ['earstore_cart_v1','shop_cart_v1','shop_cart']; // спробуємо кілька ключів
+    // --- вбудований каталог (28 товарів) ---
+    const CATALOG = [
+      { id:'echowave-pro', title:'EchoWave Pro', price:5499, image:'img/img.nav1.webp' },
+      { id:'marshall-major-iv', title:'Marshall Major IV', price:4299, image:'img/nav2.jpeg' },
+      { id:'hator-hypergang-2-gold', title:'Hator Hypergang 2 Gold', price:2699, image:'img/nav3.webp' },
+      { id:'g435-wireless', title:'G435 Wireless', price:6799, image:'img/nav4.webp' },
+      { id:'logitech-g-pro-x-2', title:'Logitech G Pro X 2', price:10999, image:'img/nav5.webp' },
+      { id:'hator-hypergang-3', title:'Hator Hypergang 3', price:1899, image:'img/nab6.webp' },
+      { id:'logitech-g522-white', title:'Logitech G522 White', price:7799, image:'img/nav7.webp' },
+      { id:'hyperpunk-3-wireless', title:'Hyperpunk 3 Wireless', price:2499, image:'img/nav8.webp' },
+      { id:'rztk-hp410-rgb-7-1', title:'RZTK HP410 RGB 7.1', price:1899, image:'img/nav9.webp' },
+      { id:'valkyria-hsw249b', title:'Valkyria HSW249B', price:3199, image:'img/nav10.webp' },
+      { id:'bloody-mr710', title:'Bloody MR710', price:2199, image:'img/nav11.webp' },
+      { id:'onikuma-gt839i', title:'Onikuma GT839I', price:1699, image:'img/nav12.webp' },
+      { id:'logitech-g332', title:'Logitech G332', price:2599, image:'img/nav13.webp' },
+      { id:'razer-barracuda-x-2022', title:'Razer Barracuda X 2022', price:5499, image:'img/nav14.jpg' },
+      { id:'sony-inzone-h5', title:'Sony Inzone H5', price:7499, image:'img/nav15.jpg' },
+      { id:'hyperx-cloud-iii-wl', title:'HyperX Cloud III WL', price:6999, image:'img/nav16.jpg' },
+      { id:'bloody-m590i-sports-red', title:'Bloody M590i Sports Red', price:2499, image:'img/nav17.jpg' },
+      { id:'barracuda-x-2022-rbx', title:'Barracuda X 2022 RBX', price:7499, image:'img/nav18.jpg' },
+      { id:'vertux-warfare-7-1', title:'Vertux Warfare 7.1', price:2799, image:'img/nav19.jpg' },
+      { id:'takstar-ts-450', title:'Takstar TS-450', price:1349, image:'img/nav20.webp' },
+      { id:'v2-pro-ps5', title:'V2 Pro PS5', price:12999, image:'img/nav21.webp' },
+      { id:'a4tech-g575', title:'A4Tech G575', price:1379, image:'img/nav22.webp' },
+      { id:'xtrfy-h2-black', title:'Xtrfy H2 Black', price:3199, image:'img/nav23.webp' },
+      { id:'a4tech-m320', title:'A4Tech M320', price:3799, image:'img/nav24.webp' },
+      { id:'corsair-hs55-carbon', title:'Corsair HS55 Carbon', price:3599, image:'img/nav25.jpg' },
+      { id:'pro-x-wireless', title:'Pro X Wireless', price:9999, image:'img/nav26.webp' },
+      { id:'lenovo-legion-h600', title:'Lenovo Legion H600', price:4999, image:'img/nav27.jpg' },
+      { id:'quantum-910x', title:'Quantum 910X', price:10999, image:'img/nav28.jpg' }
+    ];
+
+    // допоміжні
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const priceFmt = v => (Number(v)||0).toLocaleString('uk-UA') + ' ₴';
+
+    // --- нормалізація формату кошика зі сховища ---
+    function readRawStorage(){
+      for (const k of STORAGE_KEYS){
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        try { return { key:k, value: JSON.parse(raw) }; } catch(e){ continue; }
+      }
+      return null;
+    }
+
+    // Normalize to object map: { id: { qty: number } }
+    function normalizeCart(raw){
+      if (!raw) return {};
+      const v = raw.value;
+      // if it's already an object with properties that are objects { id: { qty:.. } }
+      if (typeof v === 'object' && !Array.isArray(v)){
+        // detect if values are numbers => maybe { id: 2, id2:1 } -> convert
+        const keys = Object.keys(v);
+        if (keys.every(k => typeof v[k] === 'number')) {
+          const out = {};
+          keys.forEach(k => out[k] = { qty: Number(v[k]) || 1 });
+          return out;
+        }
+        // if values are objects and contain qty -> use as-is
+        const out = {};
+        keys.forEach(k => {
+          const val = v[k];
+          if (val && typeof val === 'object' && ('qty' in val || 'quantity' in val)) {
+            out[k] = { qty: Number(val.qty||val.quantity||1) || 1, title: val.title||undefined, price: val.price||undefined, image: val.image||undefined };
+          } else {
+            // fallback assume val is qty or something else
+            out[k] = { qty: 1 };
+          }
+        });
+        return out;
+      }
+      // array format [ { id:'x', qty:1, ... }, ... ]
+      if (Array.isArray(v)){
+        const out = {};
+        v.forEach(it => {
+          if (!it) return;
+          const id = it.id || it.productId || it.pid || it.name;
+          if (!id) return;
+          out[id] = { qty: Number(it.qty || it.quantity || 1) || 1, title: it.title||undefined, price: it.price||undefined, image: it.image||undefined };
+        });
+        return out;
+      }
+      // otherwise empty
+      return {};
+    }
+
+    // write back to primary key (earstore_cart_v1)
+    function writeStorage(cartObj){
+      try {
+        localStorage.setItem('earstore_cart_v1', JSON.stringify(cartObj));
+        window.dispatchEvent(new Event('cart:changed'));
+      } catch(e){
+        console.error('save cart failed',e);
+      }
+    }
+
+    // get product data from catalog; if not found -> fallback
+    function lookupProduct(id){
+      const found = CATALOG.find(p=>p.id === id || (p.title && slug(p.title) === id));
+      if (found) return Object.assign({}, found);
+      return { id, title: id, price:0, image: 'img/placeholder.png' };
+    }
+
+    function slug(s){ return String(s||'').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,''); }
+
+    // render entire cart UI
+    function render(){
+      const raw = readRawStorage();
+      const normalized = normalizeCart(raw);
+      const ids = Object.keys(normalized);
+      const root = $('#cart-root');
+      root.innerHTML = '';
+      if (!ids.length){
+        root.innerHTML = '<div class="empty">Кошик порожній.<br><a href="index.html">Повернутися до каталогу</a></div>';
+        updateSummary(normalized);
+        return;
+      }
+
+      ids.forEach(id => {
+        const item = normalized[id];
+        const prod = lookupProduct(id);
+        const qty = Number(item.qty || 1) || 0;
+        const subtotal = (Number(prod.price)||0) * qty;
+
+        const node = document.createElement('div');
+        node.className = 'cart-item';
+        node.setAttribute('data-id', id);
+
+        node.innerHTML = `
+          <div class="thumb-wrap" aria-hidden="true">
+            <img src="${escapeHtml(prod.image||'')}" alt="${escapeHtml(prod.title||'')}" />
+          </div>
+          <div class="item-meta">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="flex:1">
+                <div class="title">${escapeHtml(prod.title||id)}</div>
+                <div class="sku">${escapeHtml(id)}</div>
+              </div>
+              <div style="min-width:70px;text-align:right">
+                <div class="muted" style="font-size:13px">Ціна</div>
+                <div class="price-single">${priceFmt(prod.price)}</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+              <div class="center-controls">
+                <div class="muted">−</div>
+                <div class="qty-controls" data-id="${escapeHtml(id)}">
+                  <button class="btn dec" data-action="dec" aria-label="зменшити">−</button>
+                  <input type="number" min="0" value="${qty}" class="qty-input" aria-label="кількість" />
+                  <button class="btn inc" data-action="inc" aria-label="збільшити">+</button>
+                </div>
+                <div style="min-width:70px;text-align:right">
+                  <div class="muted">Сума</div>
+                  <div class="subtotal">${priceFmt(subtotal)}</div>
+                </div>
+              </div>
+
+              <div style="margin-left:14px;">
+                <button class="btn remove" data-action="remove">Видалити</button>
+              </div>
+            </div>
+          </div>
+        `;
+        root.appendChild(node);
+      });
+
+      // attach delegation handlers (single listener used globally below)
+      updateSummary(normalized);
+    }
+
+    // escape
+    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+
+    // update summary: positions, qty, total
+    function updateSummary(normalized){
+      const ids = Object.keys(normalized||{});
+      let totalQty = 0, totalSum = 0;
+      ids.forEach(id => {
+        const qty = Number(normalized[id].qty||0);
+        const prod = lookupProduct(id);
+        totalQty += qty;
+        totalSum += (Number(prod.price)||0) * qty;
+      });
+      $('#meta-items').textContent = ids.length;
+      $('#meta-qty').textContent = totalQty;
+      $('#meta-total').textContent = priceFmt(totalSum);
+    }
+
+    // helpers to read/modify normalized cart and persist
+    function getCartMap(){
+      const raw = readRawStorage();
+      return normalizeCart(raw);
+    }
+    function saveCartMap(map){
+      // write as { id: { qty: N } } to earstore_cart_v1 for compatibility
+      const out = {};
+      Object.keys(map).forEach(k => out[k] = { qty: Number(map[k].qty||0) });
+      writeStorage(out);
+      render();
+    }
+
+    // public API
+    function addToCart(pid, qty=1){
+      if (!pid) return false;
+      const map = getCartMap();
+      if (!map[pid]) map[pid] = { qty: 0 };
+      map[pid].qty = (Number(map[pid].qty)||0) + Number(qty||1);
+      if (map[pid].qty <= 0) delete map[pid];
+      saveCartMap(map);
+      // small toast
+      flash(`${lookupProduct(pid).title} — додано`);
+      return true;
+    }
+    function setQty(pid, qty){
+      const map = getCartMap();
+      if (!map[pid] && qty>0) map[pid] = { qty:0 };
+      if (qty <= 0) { delete map[pid]; saveCartMap(map); return; }
+      map[pid].qty = Number(qty) || 0;
+      saveCartMap(map);
+    }
+    function removeFromCart(pid){
+      const map = getCartMap();
+      if (map[pid]) delete map[pid];
+      saveCartMap(map);
+    }
+    function clearCart(){
+      writeStorage({});
+      render();
+    }
+    function getCart(){
+      return getCartMap();
+    }
+
+    // small flash message
+    let flashTimer = null;
+    function flash(msg){
+      let el = document.getElementById('cart-flash');
+      if (!el){
+        el = document.createElement('div');
+        el.id = 'cart-flash';
+        Object.assign(el.style, {position:'fixed', right:'18px', top:'18px', background:'rgba(8,8,12,0.9)', color:'#fff', padding:'10px 14px', borderRadius:'10px', zIndex:20000, fontWeight:700});
+        document.body.appendChild(el);
+      }
+      el.textContent = msg;
+      el.style.opacity = '1';
+      if (flashTimer) clearTimeout(flashTimer);
+      flashTimer = setTimeout(()=> el.style.opacity='0', 1500);
+    }
+
+    // event delegation for clicks / inputs
+    document.addEventListener('click', function(e){
+      const btn = e.target.closest && e.target.closest('button');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      // find the nearest item id
+      const row = btn.closest('.cart-item');
+      const id = row?.getAttribute('data-id');
+      if (!action || !id) {
+        // global actions
+        if (btn.id === 'clear-cart' || btn.id === 'btn-clear') { if (confirm('Очистити кошик?')) clearCart(); }
+        if (btn.id === 'checkout' || btn.id === 'btn-place') { flash('Прийнято'); }
+        return;
+      }
+
+      if (action === 'inc'){
+        const input = row.querySelector('.qty-input');
+        const val = Number(input.value||0) + 1;
+        setQty(id, val);
+      } else if (action === 'dec'){
+        const input = row.querySelector('.qty-input');
+        const val = Number(input.value||0) - 1;
+        setQty(id, val);
+      } else if (action === 'remove'){
+        if (!confirm('Видалити позицію?')) return;
+        removeFromCart(id);
+      }
+    });
+
+    // quantity input change
+    document.addEventListener('input', function(e){
+      if (!e.target.matches('.qty-input')) return;
+      const input = e.target;
+      const row = input.closest('.cart-item');
+      const id = row?.getAttribute('data-id');
+      const val = Math.max(0, Math.floor(Number(input.value) || 0));
+      input.value = val;
+      if (id){
+        setQty(id, val);
+      }
+    });
+
+    // keep UI in sync when storage changed from other tab or external script
+    window.addEventListener('storage', function(e){
+      if (STORAGE_KEYS.includes(e.key) || !e.key) render();
+    });
+    window.addEventListener('cart:changed', render);
+
+    // expose API
+    window.earCart = {
+      addToCart, setQty, removeFromCart, clearCart, getCart, sync: render
+    };
+
+    // initial render
+    render();
+
+    // If cart empty but there is a legacy list in localStorage saved as array of ids -> convert
+    (function tryAutoConvert(){
+      // example: some scripts may store an array ['id','id2']
+      const raw = readRawStorage();
+      if (!raw) return;
+      const v = raw.value;
+      if (Array.isArray(v) && v.length && typeof v[0] === 'string'){
+        // convert to map with qty 1
+        const map = {};
+        v.forEach(id => map[id] = { qty: 1 });
+        saveCartMap(map);
+      }
+    })();
+
+  })();
+  </script>
+</body>
+</html>

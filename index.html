@@ -1,0 +1,2891 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EarStore – Інтернет-магазин навушників</title>
+  <link rel="stylesheet" href="css/style.css">
+
+
+  <link rel="icon"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/cart.svg"
+        type="image/svg+xml">
+        <style>
+/* ===== Product modal + card details button styles ===== */
+.hidden { display: none !important; }
+
+/* базові стилі карточки (щоб кнопка трьох крапок була зверху) */
+.product-card { position: relative; background:#fff; border-radius:8px; overflow:visible; }
+
+/* кнопка "три крапки" */
+.product-card .btn-details {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  min-width:36px; height:36px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:8px; border:1px solid rgba(0,0,0,0.06);
+  background:#fff; color:#222; font-size:18px; cursor:pointer;
+  box-shadow:0 6px 14px rgba(15,23,42,0.06); z-index:3;
+}
+.product-card .btn-details:focus { outline:3px solid rgba(59,130,246,0.22); }
+
+/* modal wrapper */
+.product-modal {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  z-index: 1200; font-family: inherit;
+}
+
+/* overlay */
+.product-modal .modal-overlay {
+  position:absolute; inset:0;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+}
+
+/* panel */
+.modal-panel {
+  position: relative; width: min(1100px,96%); max-height:90vh; overflow:auto;
+  background:#fff; border-radius:12px; padding:18px; box-shadow:0 30px 80px rgba(2,6,23,0.35);
+  z-index:2;
+}
+
+/* close btn */
+.modal-close {
+  position:absolute; right:12px; top:8px; background:transparent; border:none;
+  font-size:28px; line-height:1; cursor:pointer; color:#333;
+}
+
+/* grid inside modal */
+.modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start; }
+
+/* media column */
+.modal-media .modal-main-img {
+  width:100%; max-height:60vh; display:flex; align-items:center; justify-content:center;
+  padding:8px; background:#fafafa; border-radius:8px; border:1px solid #f2f2f2;
+}
+.modal-media .modal-main-img img { max-width:100%; max-height:60vh; object-fit:contain; display:block; }
+
+/* thumbs */
+.modal-thumbs { margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.modal-thumbs img {
+  width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #eee; padding:3px; cursor:pointer;
+}
+.modal-thumbs img.selected { box-shadow: 0 6px 18px rgba(3,102,214,0.15); transform: translateY(-2px); }
+
+/* right column text */
+.modal-info h2 { margin:0 0 6px; font-size:1.25rem; color:#111; }
+.modal-price { color:#0b61d6; font-weight:600; margin-bottom:8px; }
+.modal-short { color:#444; margin-bottom:10px; }
+
+/* actions */
+.modal-actions { display:flex; gap:10px; margin:10px 0 14px; }
+.modal-actions .btn { padding:10px 14px; border-radius:8px; cursor:pointer; border:none; }
+.btn-add, #modal-add { background:#f59e0b; color:#fff; }
+.btn-buy, #modal-buy { background:#10b981; color:#fff; }
+
+/* specs table */
+.specs-table { width:100%; border-collapse: collapse; margin-bottom:12px; }
+.specs-table td { padding:8px 10px; border-bottom:1px solid #f3f3f3; color:#333; }
+
+/* description & reviews */
+.modal-desc { margin-bottom:12px; color:#333; }
+.modal-reviews { margin-top:8px; color:#555; }
+.modal-reviews .review { border-top:1px dashed #eee; padding:8px 0; }
+
+/* popup added (if not exists) */
+#added-popup { position:fixed; right:20px; bottom:20px; padding:10px 14px; background:#111; color:#fff; border-radius:8px; z-index:1300; opacity:0; transition:opacity .25s; }
+
+/* responsive */
+@media (max-width:880px) {
+  .modal-grid { grid-template-columns:1fr; }
+  .modal-media .modal-main-img { max-height:45vh; }
+  .modal-thumbs img { width:48px; height:48px; }
+}
+</style>
+<style>
+/* ===== INLINE: Modal + buttons styles ===== */
+.product-modal.hidden { display:none !important; }
+.product-modal {
+  position:fixed; inset:0; z-index:12000;
+  display:flex; align-items:center; justify-content:center;
+  font-family:inherit;
+}
+.product-modal .modal-overlay {
+  position:absolute; inset:0; background:rgba(0,0,0,0.45);
+}
+.product-modal .modal-panel {
+  position:relative; z-index:12010;
+  width:min(1100px,96%); max-height:86vh; overflow:hidden;
+  background:#fff; border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,.28);
+  display:block;
+}
+.product-modal .modal-grid {
+  display:grid; grid-template-columns:1fr 420px; gap:22px; padding:20px;
+  max-height:86vh; box-sizing:border-box; overflow:hidden;
+}
+.product-modal .modal-main-img { background:#fafafa; padding:18px; display:flex; align-items:center; justify-content:center; border-radius:6px; height:60vh; }
+.product-modal .modal-main-img img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+
+/* thumbs */
+#modal-thumbs { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.ps-thumb { width:56px; height:56px; border-radius:8px; padding:6px; background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.06); cursor:pointer; border:2px solid transparent; display:flex; align-items:center; justify-content:center; }
+.ps-thumb img{max-width:100%; max-height:100%; object-fit:contain;}
+.ps-thumb.active{ border-color:#f4a400; }
+
+/* info */
+.modal-info { overflow:auto; max-height:72vh; padding-right:8px; }
+.modal-info h2{ margin:0 0 6px; font-size:20px; }
+.modal-price{ color:#0a64d6; font-weight:700; margin-bottom:6px; }
+.modal-short{ color:#444; margin-bottom:12px; }
+
+/* actions */
+.ps-btn-primary{ background:#f4a400; color:#fff; border:0; padding:12px 18px; border-radius:8px; font-weight:700; cursor:pointer; }
+.ps-btn-secondary{ background:#10b981; color:#fff; border:0; padding:10px 14px; border-radius:8px; cursor:pointer; }
+.modal-actions{ display:flex; gap:12px; align-items:center; margin:12px 0 18px; }
+
+/* specs table */
+.specs-table{ width:100%; border-collapse:collapse; margin-bottom:12px; }
+.specs-table th{ text-align:left; padding:10px 8px; width:40%; font-weight:700; }
+.specs-table td{ padding:10px 8px; border-top:1px solid #eee; }
+
+/* close button - make sure it's above overlay */
+.modal-close {
+  position:absolute; top:10px; right:12px; z-index:12030;
+  background:transparent; border:0; font-size:20px; cursor:pointer; padding:6px;
+  color:#111;
+}
+.modal-close:focus{ outline:2px solid #0078ff; border-radius:4px; }
+
+/* small screens */
+@media (max-width:900px) {
+  .product-modal .modal-grid{ grid-template-columns:1fr; padding:12px; }
+  .product-modal .modal-main-img{ height:40vh; }
+}
+
+/* Details button under Add */
+.ps-btn-details {
+  display:inline-block; margin-top:10px; width:100%;
+  background:#fff; border:1px solid #e6e6e6; padding:10px 12px;
+  border-radius:8px; cursor:pointer; color:#333; font-weight:600;
+}
+.ps-btn-details:hover{ box-shadow:0 6px 16px rgba(0,0,0,.06); }
+
+/* hide old “dots” if they exist by class (safe) */
+.product-card .card-dots, .product-card .dots, .product-card .three-dots { display:none !important; }
+
+/* block body scroll when modal open */
+body.ps-modal-open { overflow:hidden; }
+</style>
+<style>
+/* Backup: приховає поширені класи, якщо вони є */
+.product-card .card-dots,
+.product-card .dots,
+.product-card .three-dots,
+.product-card .product-dots,
+.product-card .more-btn,
+.product-card .product-more { display:none !important; }
+
+/* Псевдо-елементи: якщо крапки роблять через ::before/::after на цих селекторах */
+.product-card .card-dots::before,
+.product-card .dots::before,
+.product-card .three-dots::before,
+.product-card .more-btn::before,
+.product-card .product-more::before,
+.product-card::before,
+.product-card::after { content: none !important; }
+
+/* Додатково сховаємо будь-які прямі елементи зверху карток, що мають явно маленький висотний контейнер */
+.product-card > .top-dots,
+.product-card > .dots-wrapper { display:none !important; }
+</style>
+
+
+<style>
+  :root{
+    --ps-btn-bg: #f59e0b;        /* основний колір кнопки */
+    --ps-btn-hover: #e08f00;     /* колір при наведенні */
+    --ps-btn-color: #ffffff;     /* колір тексту */
+    --ps-btn-height: 48px;       /* висота кнопок */
+    --ps-btn-radius: 10px;       /* округлення */
+    --ps-btn-gap: 10px;          /* відстань між кнопками */
+    --ps-btn-side-pad: 16px;     /* відступи з боків */
+    --ps-btn-font-size: 16px;
+  }
+
+  /* Загальний контейнер для однакового розміру */
+  .product-card .btn-add,
+  .product-card .ps-btn-details {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    height: var(--ps-btn-height) !important;
+    min-height: var(--ps-btn-height) !important;
+    width: calc(100% - (var(--ps-btn-side-pad) * 2)) !important;
+    margin-left: var(--ps-btn-side-pad);
+    margin-right: var(--ps-btn-side-pad);
+    box-sizing: border-box;
+    border-radius: var(--ps-btn-radius) !important;
+    font-size: var(--ps-btn-font-size);
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color .12s ease, transform .06s ease, box-shadow .12s ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Колір і вигляд — для всіх кнопок однаковий */
+  .product-card .btn-add,
+  .product-card .ps-btn-details {
+    background: var(--ps-btn-bg) !important;
+    color: var(--ps-btn-color) !important;
+    border: none !important;
+    box-shadow: 0 8px 18px rgba(5,10,20,0.07);
+  }
+
+  /* hover / active */
+  .product-card .btn-add:hover,
+  .product-card .ps-btn-details:hover {
+    background: var(--ps-btn-hover) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(5,10,20,0.08);
+  }
+  .product-card .btn-add:active,
+  .product-card .ps-btn-details:active {
+    transform: translateY(0);
+  }
+
+  /* відстань між кнопками (щоб не злипались) */
+  .product-card .btn-add { margin-bottom: var(--ps-btn-gap); }
+  .product-card .ps-btn-details { margin-top: 0; margin-bottom: calc(var(--ps-btn-gap) / 2); }
+
+  /* доступність фокусу */
+  .product-card .btn-add:focus,
+  .product-card .ps-btn-details:focus {
+    outline: 3px solid rgba(59,130,246,0.18);
+    outline-offset: 2px;
+  }
+
+  /* На мобайлі трохи менші відступи */
+  @media (max-width:600px) {
+    :root { --ps-btn-height:44px; --ps-btn-font-size:15px; --ps-btn-side-pad:12px; }
+    .product-card .btn-add { margin-bottom:8px; }
+  }
+
+  /* Якщо на сторінці є інші класи-крапки — ховаємо їх (додатково) */
+  .product-card .card-dots,
+  .product-card .dots,
+  .product-card .three-dots,
+  .product-card .btn-details { display: none !important; }
+</style>
+
+
+<style>
+/* Універсальні кнопки товарів */
+.product-card { box-sizing: border-box; }
+
+/* Базові параметри кнопок (Додати + Деталі) */
+.product-card .btn-add,
+.product-card .ps-btn-details {
+  display: block;
+  width: calc(100% - 24px);   /* однакова ширина всередині карточки */
+  margin: 12px auto 0;
+  height: 48px;
+  line-height: 48px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 80ms ease;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+}
+
+/* Візуальна відстань між кнопками */
+.product-card .ps-btn-details { margin-top: 10px; }
+
+/* Стартові кольори */
+.product-card .btn-add { background: #f59e0b; color: #ffffff; }
+.product-card .ps-btn-details { background: #ffffff; color: #222222; border: 1px solid #e6e6e6; }
+
+/* HOVER / FOCUS: ТІЛЬКИ КНОПКА СТАЄ СИНЬОЮ */
+.product-card .btn-add:hover,
+.product-card .btn-add:focus,
+.product-card .ps-btn-details:hover,
+.product-card .ps-btn-details:focus {
+  background: #0a64d6 !important;   /* синій при наведенні */
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(10,100,214,0.14);
+  transform: translateY(-1px);
+  border-color: transparent !important;
+  outline: none;
+}
+
+/* Фокус клавіатурою (видимий контур) */
+.product-card .btn-add:focus-visible,
+.product-card .ps-btn-details:focus-visible {
+  outline: 3px solid rgba(10,100,214,0.14);
+  outline-offset: 2px;
+}
+
+/* Прибираємо старі/непотрібні "три крапки" по класах, якщо є */
+.product-card .card-dots,
+.product-card .dots,
+.product-card .three-dots,
+.product-card .ellipsis,
+.product-card .three-dot { display: none !important; }
+
+/* Адаптив */
+@media (max-width: 640px) {
+  .product-card .btn-add,
+  .product-card .ps-btn-details {
+    width: calc(100% - 20px);
+    margin: 10px auto 0;
+    height: 44px;
+    line-height: 44px;
+    font-size: 14px;
+  }
+}
+</style>
+
+
+<style>
+/* Надійне вирівнювання кнопок у модалі */
+#product-modal .modal-actions {
+  display: flex;
+  gap: 14px;                 /* відстань між кнопками */
+  align-items: stretch;      /* ключ: робимо кнопки однакової висоти */
+  justify-content: flex-start;
+  padding-top: 6px;
+  box-sizing: border-box;
+}
+
+/* Уніфікований стиль для кнопок у modal-actions */
+#product-modal .modal-actions > button,
+#product-modal .modal-actions > .btn,
+#product-modal .modal-actions > .btn-add,
+#product-modal .modal-actions > .btn-buy {
+  box-sizing: border-box;
+  display: flex;             /* щоб контент центр. */
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-height: 52px;          /* мін. висота — змінюй при потребі */
+  padding: 0 26px;           /* горизонтальні відступи */
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .12s, box-shadow .12s, transform .06s;
+}
+
+/* Гарантуємо однакову зовнішність (колір/тінь) */
+#product-modal .modal-actions > #modal-add,
+#product-modal .modal-actions > .btn-add {
+  background: #f59e0b;
+  color: #fff;
+}
+#product-modal .modal-actions > #modal-buy,
+#product-modal .modal-actions > .btn-buy {
+  background: #10b981;
+  color: #fff;
+}
+
+/* Hover: тільки та кнопка, на яку навели */
+#product-modal .modal-actions > button:hover {
+  filter: brightness(.96);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* Фокус — акуратно (щоб не зрушувало) */
+#product-modal .modal-actions > button:focus {
+  outline: 3px solid rgba(16,124,255,0.18);
+  outline-offset: 0;
+}
+
+/* Якщо одна з кнопок є <a> або інший inline-елемент */
+#product-modal .modal-actions > a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* Адаптив: стовпчик на мобайлі */
+@media (max-width:720px) {
+  #product-modal .modal-actions { flex-direction: column; gap: 12px; }
+  #product-modal .modal-actions > button { width: 100%; min-width: 0; }
+}
+</style>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modalActions = document.querySelector('#product-modal .modal-actions');
+  if (!modalActions) return;
+  // уніфікуємо кнопки у модалі
+  modalActions.querySelectorAll('button, a').forEach(el => {
+    el.classList.add('modal-action-unified');
+    // видаляємо зовнішні margin-top/bottom, якщо є
+    el.style.marginTop = '0';
+    el.style.marginBottom = '0';
+  });
+});
+</script>
+
+<style>
+/* === Buttons: consistent size, spacing, hover-blue for Add & Details === */
+.product-card { box-sizing: border-box; display:flex; flex-direction:column; align-items:center; padding:16px; }
+.product-card img { max-width:100%; height:auto; display:block; }
+
+.product-card .btn,
+.product-card .ps-btn-details,
+.product-card .btn-details {
+  -webkit-appearance:none; appearance:none;
+  border:0; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:220px; /* exact width for identical buttons — change if needed */
+  height:44px; /* exact height */
+  margin:10px 0; /* gap between buttons so they don't merge */
+  border-radius:10px;
+  font-weight:700;
+  box-shadow: 0 6px 14px rgba(15,23,42,0.06);
+  transition: background .15s ease, transform .06s ease, box-shadow .12s;
+}
+
+/* default colors */
+.product-card .btn-add { background:#f4a400; color:#fff; }
+.product-card .ps-btn-details,
+.product-card .btn-details { background:#f4a400; color:#fff; }
+
+/* hover: make only Add and Details buttons blue on hover */
+.product-card .btn-add:hover,
+.product-card .ps-btn-details:hover,
+.product-card .btn-details:hover {
+  background: #0a64d6 !important; /* blue on hover */
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* focus accessibility */
+.product-card .btn-add:focus,
+.product-card .ps-btn-details:focus,
+.product-card .btn-details:focus {
+  outline: 3px solid rgba(10,100,214,0.16);
+}
+
+/* Modal buttons: equal heights & alignment */
+.product-modal .modal-actions { display:flex; gap:12px; align-items:center; }
+.product-modal .modal-actions .btn {
+  height:44px;
+  min-width:150px;
+  border-radius:10px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-weight:700;
+  border:0; cursor:pointer;
+}
+
+/* modal add (orange) and buy (green) default colors */
+#modal-add { background:#f4a400; color:#fff; }
+#modal-buy { background:#10b981; color:#fff; }
+
+/* for modal-add hover — blue (user requested Add → blue on hover) */
+#modal-add:hover { background:#0a64d6 !important; }
+
+/* ensure buttons don't wrap text weirdly */
+.product-card .btn, .product-modal .btn { white-space:nowrap; }
+
+/* added-popup style */
+#added-popup {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  background: #111;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  z-index: 99999;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .22s ease, transform .22s ease;
+  pointer-events: none;
+  font-weight:600;
+  box-shadow:0 6px 22px rgba(0,0,0,0.28);
+}
+#added-popup.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+</style>
+
+
+<style>
+  :root{
+    --btn-orange: #f4a400;
+    --btn-orange-text: #fff;
+    --btn-hover-blue: #0a64d6;
+    --btn-green: #10b981;
+    --btn-text: #ffffff;
+  }
+
+  /* Center buttons inside product-card and make exact same size */
+  .product-card {
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px;
+  }
+
+  /* exact button size for all product buttons */
+  .product-card .btn,
+  .product-card .ps-btn-details,
+  .product-card .btn-add,
+  .product-card .ps-btn-primary,
+  .product-card .ps-btn-secondary,
+  .product-card .ps-btn-details {
+    width: 200px !important;          /* exact width for all cards */
+    height: 44px !important;          /* exact height */
+    line-height: 20px !important;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    transition: background .12s ease, color .12s ease, box-shadow .12s ease;
+    margin-top: 12px !important;      /* gap between buttons */
+    text-decoration: none !important;
+    border: 0 !important;
+    outline: none !important;
+  }
+
+  /* default look (orange) */
+  .product-card .btn,
+  .product-card .btn-add,
+  .product-card .ps-btn-details { 
+    background: var(--btn-orange) !important;
+    color: var(--btn-orange-text) !important;
+    box-shadow: 0 6px 14px rgba(15,23,42,0.06) !important;
+  }
+
+  /* Details button visual parity with Add (same orange) */
+  .product-card .ps-btn-details { background: var(--btn-orange) !important; color: var(--btn-orange-text) !important; }
+
+  /* Hover: ONLY on hover turn blue */
+  .product-card .btn:hover,
+  .product-card .btn-add:hover,
+  .product-card .ps-btn-details:hover {
+    background: var(--btn-hover-blue) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(10,100,214,0.15) !important;
+  }
+
+  /* Prevent click/focus from making button stay blue — restore native bg when focused/active */
+  .product-card .btn:focus,
+  .product-card .btn:active,
+  .product-card .btn-add:focus,
+  .product-card .btn-add:active,
+  .product-card .ps-btn-details:focus,
+  .product-card .ps-btn-details:active {
+    background: var(--btn-orange) !important;
+    color: var(--btn-orange-text) !important;
+    box-shadow: 0 6px 14px rgba(15,23,42,0.06) !important;
+    outline: none !important;
+  }
+
+  /* Modal buttons: consistent height/align and gap */
+  .product-modal .modal-actions { display:flex; gap:12px; align-items:center; }
+  .product-modal .modal-actions .btn {
+    min-width: 160px !important;
+    height: 44px !important;
+    border-radius: 8px !important;
+    padding: 10px 16px !important;
+    font-weight:700 !important;
+  }
+  /* Keep Add in modal orange, Buy in modal green — but hover also blue if user wants (optional) */
+  #modal-add { background: var(--btn-orange) !important; color:var(--btn-text) !important; }
+  #modal-buy { background: var(--btn-green) !important; color:var(--btn-text) !important; }
+
+  /* If you want modal buttons to become blue on hover as well (consistent UX) */
+  #modal-add:hover, #modal-buy:hover { background: var(--btn-hover-blue) !important; }
+
+  /* Popup "added" small compact box (top-right) */
+  #added-popup {
+    position: fixed;
+    right: 18px;
+    top: 18px;
+    background: rgba(10,10,10,0.95);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    z-index: 20000 !important;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+    min-width: 220px;
+    max-width: 320px;
+    font-weight:700;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+  }
+  #added-popup.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  /* Make sure no browser focus ring will override (but keep keyboard accessibility: :focus-visible) */
+  .btn:focus { outline: none !important; }
+  .btn:focus-visible { outline: 3px solid rgba(59,130,246,0.22); outline-offset: 2px; }
+
+  /* Ensure thumbs etc unaffected */
+  .product-card img { max-width:100%; height:auto; display:block; }
+
+  /* Safety: override any inline "active" classes that could color buttons blue */
+  .product-card .btn.active,
+  .product-card .btn[aria-pressed="true"] {
+    background: var(--btn-orange) !important;
+    color: var(--btn-orange-text) !important;
+    box-shadow: 0 6px 14px rgba(15,23,42,0.06) !important;
+  }
+</style>
+
+<style>
+  /* Compact "added to cart" popup override (strong !important rules to beat other CSS) */
+  #added-popup {
+    position: fixed !important;
+    right: 18px !important;
+    top: 18px !important;
+    bottom: auto !important;
+    z-index: 20000 !important;
+
+    /* compact size */
+    width: auto !important;
+    min-width: 220px !important;
+    max-width: 320px !important;
+    height: auto !important;
+    max-height: none !important;
+
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
+
+    background: rgba(12,12,12,0.95) !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    font-size: 15px !important;
+    text-align: center !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45) !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+
+    opacity: 0 !important;
+    transform: translateY(-6px) !important;
+    transition: opacity .18s ease, transform .18s ease !important;
+    pointer-events: none !important;
+  }
+
+  #added-popup.show {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
+  }
+
+  /* If some global rule set height:100% on div#added-popup previously, this kills it */
+  #added-popup[style] { height: auto !important; max-height: none !important; }
+
+  /* Ensure inner text doesn't expand block */
+  #added-popup > * { margin: 0 !important; padding: 0 !important; }
+</style>
+
+
+<!-- Для мобільних (колір адресного рядка у Chrome/Android) -->
+<meta name="theme-color" content="#000000">
+
+
+
+
+</head>
+
+<body>
+
+<header class="site-header">
+  <div class="logo">EarStore</div>
+  <div class="search-container">
+<form class="search-form" onsubmit="return false;">
+  <input
+    type="text"
+    id="product-search"
+    placeholder="Пошук товарів…"
+    aria-label="Пошук товарів"
+  >
+  <button type="button" onclick="filterProducts()">🔍</button>
+</form>
+
+   <nav class="main-nav">
+      <ul>
+        <li><a href="#home">Головна</a></li>
+        <li><a href="#products">Товари</a></li>
+        <li><a href="#offers">Пропозиції</a></li>
+        <li><a href="#features">Особливості</a></li>
+        <li><a href="#technology">Технології</a></li>
+        <li><a href="#why">Чому обирають</a></li>
+        <li><a href="#checklist">Чекліст</a></li>
+        <li><a href="#reviews">Відгуки</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#payment">Оплата</a></li>
+        <li><a href="#guarantees">Гарантії</a></li>
+        <li><a href="#about-stats">Про нас</a></li>
+        <li><a href="#contact">Контакти</a></li>
+      </ul>
+    </nav>
+
+<a href="cart.html" class="cart-icon" aria-label="Кошик">
+
+  <img
+    src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/cart-fill.svg"
+    alt="Кошик"
+    width="24"
+    height="24"
+  >
+  <span class="cart-count" id="cart-count">0</span>
+</a>
+
+  </header> 
+
+
+
+  <!-- HERO SECTION -->
+  <section id="home" class="hero">
+    <div class="container hero-content">
+      <h1 class="hero-title">
+        <span class="filled">immersive</span>
+        <span class="outline">comfort</span>
+      </h1>
+     <p class="hero-subtitle">
+  Відчуй студійну чистоту звуку та абсолютну тишу з активним шумозаглушенням, преміальним комфортом і до 30 годин безперервної гри.
+</p>
+
+      <div class="hero-image">
+   
+      </div>
+    </div>
+  </section>
+<p class="hero-typing">Понад 5 років досвіду: від концепту до релізу</p>
+
+
+  <!-- PRODUCTS GRID -->
+<!-- PRODUCTS GRID -->
+<!-- PRODUCTS GRID -->
+<section id="products" class="products-grid">
+  <div class="container">
+    <!-- вставити тут, перед <h2>Товари -->
+<nav class="breadcrumbs" aria-label="Хлібні крихти">
+  <ol>
+    <li><a href="#home">Головна</a></li>
+    <li><a href="#products">Категорії</a></li>
+    <!-- Навушники веде також у секцію Товари, але додає data-category для фільтру -->
+    <li><a href="#products" data-category="Навушники">Навушники</a></li>
+  </ol>
+</nav>
+
+
+
+
+    <h2>Товари</h2>
+
+    <!-- Фільтр по ціні та сортування для Товарів -->
+    <div class="catalog-controls">
+      <form id="filter-form-products" onsubmit="return false;" style="display:flex; gap:1rem; align-items:center;">
+        <div class="filter-price">
+          <label>Ціна від
+            <input type="number" id="price-min-products" placeholder="мінімум" style="width:6ch;" />
+          </label>
+          <label>до
+            <input type="number" id="price-max-products" placeholder="максимум" style="width:6ch;" />
+          </label>
+        </div>
+        <div class="sort-by">
+          <label>Сортувати:
+            <select id="sort-select-products" style="padding:0.2em 0.5em;">
+              <option value="none">За замовчуванням</option>
+              <option value="price-asc">Ціна по зростанню</option>
+              <option value="price-desc">Ціна по спадінню</option>
+            </select>
+          </label>
+        </div>
+      </form>
+    </div>
+
+    <div class="grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;">
+      <!-- 1 -->
+      <article class="product-card"
+               data-price="5499"
+               data-category="Навушники"
+               data-images="img/img.nav1.webp"
+               data-specs='{"Bluetooth":"5.2","Автономність":"до 30 год","Вага":"250 г","IP":"IPX5"}'
+               data-short="Студійний звук з активним шумозаглушенням."
+               data-description="EchoWave Pro — преміальні навушники з ANC, мʼякими амбушюрами і стабільним Bluetooth 5.2. Підходять для музики та стрімінгу.">
+        <img src="img/img.nav1.webp" alt="EchoWave Pro">
+        <h3 class="product-title">EchoWave Pro</h3>
+        <p class="price">5 499 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 2 -->
+      <article class="product-card"
+               data-price="4299"
+               data-category="Навушники"
+               data-images="img/nav2.jpeg"
+               data-specs='{"Тип":"накладні","Bluetooth":"5.0","Автономність":"до 25 год","Вага":"280 г"}'
+               data-short="Класичний звук в компактному корпусі."
+               data-description="Marshall Major IV — балансований звук і зручна складна конструкція. Гарний вибір для щоденного використання.">
+        <img src="img/nav2.jpeg" alt="Marshall Major IV">
+        <h3 class="product-title">Marshall Major IV</h3>
+        <p class="price">4 299 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 3 -->
+      <article class="product-card"
+               data-price="2699"
+               data-category="Навушники"
+               data-images="img/nav3.webp"
+               data-specs='{"Тип":"геймерські","Підключення":"дротове","Вага":"320 г","Мікрофон":"виносний"}'
+               data-short="Геймерські навушники з чітким звуком мікрофона."
+               data-description="Hator Hypergang 2 Gold — надійні геймерські навушники з комфортною посадкою та чистим звучанням в діапазоні голосів і середніх частот.">
+        <img src="img/nav3.webp" alt="Hator Hypergang 2 Gold">
+        <h3 class="product-title">Hator Hypergang 2 Gold</h3>
+        <p class="price">2 699 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 4 -->
+      <article class="product-card"
+               data-price="6799"
+               data-category="Навушники"
+               data-images="img/nav4.webp"
+               data-specs='{"Bluetooth":"5.2","Автономність":"до 20 год","Вага":"210 г","Особливість":"легка конструкція"}'
+               data-short="Легкі бездротові навушники для щоденного використання."
+               data-description="G435 Wireless — компроміс між комфортом і якістю звуку; відмінно підходять для ігор і музики.">
+        <img src="img/nav4.webp" alt="G435 Wireless">
+        <h3 class="product-title">G435 Wireless</h3>
+        <p class="price">6 799 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 5 -->
+      <article class="product-card"
+               data-price="10999"
+               data-category="Навушники"
+               data-images="img/nav5.webp"
+               data-specs='{"Bluetooth":"LDAC/AAC","Автономність":"до 35 год","Вага":"300 г","IP":"IPX4"}'
+               data-short="Про-ядрові навушники для стрімінгу та запису."
+               data-description="Logitech G Pro X 2 — професійні навушники з якісною сценою і точним відтворенням, підходять для стримерів і студій.">
+        <img src="img/nav5.webp" alt="Logitech G Pro X 2">
+        <h3 class="product-title">Logitech G Pro X 2</h3>
+        <p class="price">10 999 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 6 -->
+      <article class="product-card"
+               data-price="1899"
+               data-category="Навушники"
+               data-images="img/nab6.webp"
+               data-specs='{"Тип":"накладні","Підключення":"дротове","Вага":"260 г","Чутливість":"98 дБ"}'
+               data-short="Доступні навушники з хорошим звуком."
+               data-description="Hator Hypergang 3 — недорогі навушники з приємним звуком і міцною конструкцією, підходять для геймерів-початківців.">
+        <img src="img/nab6.webp" alt="Hator Hypergang 3">
+        <h3 class="product-title">Hator Hypergang 3</h3>
+        <p class="price">1 899 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 7 -->
+      <article class="product-card"
+               data-price="7799"
+               data-category="Навушники"
+               data-images="img/nav7.webp"
+               data-specs='{"Bluetooth":"5.2","Автономність":"до 28 год","Вага":"270 г","Особливість":"стильний дизайн"}'
+               data-short="Стабільні навушники з акцентом на дизайн."
+               data-description="Logitech G522 White — поєднання комфорту і чистого звучання, підійдуть як для роботи, так і для ігор.">
+        <img src="img/nav7.webp" alt="Logitech G522 White">
+        <h3 class="product-title">Logitech G522 White</h3>
+        <p class="price">7 799 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 8 -->
+      <article class="product-card"
+               data-price="2499"
+               data-category="Навушники"
+               data-images="img/nav8.webp"
+               data-specs='{"Bluetooth":"5.1","Автономність":"до 18 год","Вага":"220 г","IP":"IPX4"}'
+               data-short="Бездротові навушники з гідною автономністю."
+               data-description="Hyperpunk 3 Wireless — зручні та прості у використанні, підходять для щоденних поїздок та прогулянок.">
+        <img src="img/nav8.webp" alt="Hyperpunk 3 Wireless">
+        <h3 class="product-title">Hyperpunk 3 Wireless</h3>
+        <p class="price">2 499 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 9 -->
+      <article class="product-card"
+               data-price="1899"
+               data-category="Навушники"
+               data-images="img/nav9.webp"
+               data-specs='{"Тип":"гарнітура","Підключення":"дротове","Вага":"240 г","Особливість":"RGB підсвітка"}'
+               data-short="Гарнітура з RGB підсвіткою для геймерів."
+               data-description="RZTK HP410 RGB 7.1 — яскрава гарнітура з віртуальним 7.1 і комфортними амбушюрами, ідеальна для ігор.">
+        <img src="img/nav9.webp" alt="RZTK HP410 RGB 7.1">
+        <h3 class="product-title">RZTK HP410 RGB 7.1</h3>
+        <p class="price">1 899 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 10 -->
+      <article class="product-card"
+               data-price="3199"
+               data-category="Навушники"
+               data-images="img/nav10.webp"
+               data-specs='{"Bluetooth":"5.2","Автономність":"до 24 год","Вага":"260 г","Матеріал":"метал/пластик"}'
+               data-short="Надійні навушники з чистим середнім діапазоном."
+               data-description="Valkyria HSW249B — універсальна модель з гарною посадкою і якісною збіркою. Підійде для довгих сесій.">
+        <img src="img/nav10.webp" alt="Valkyria HSW249B">
+        <h3 class="product-title">Valkyria HSW249B</h3>
+        <p class="price">3 199 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 11 -->
+      <article class="product-card"
+               data-price="2199"
+               data-category="Навушники"
+               data-images="img/nav11.webp"
+               data-specs='{"Тип":"накладні","Підключення":"дротове","Вага":"230 г","Чутливість":"100 дБ"}'
+               data-short="Легкі навушники з добрим відтворенням голосів."
+               data-description="Bloody MR710 — збалансовані навушники з приємним звуком та зручною конструкцією; добре для голосових дзвінків і стрімінгу.">
+        <img src="img/nav11.webp" alt="Bloody MR710">
+        <h3 class="product-title">Bloody MR710</h3>
+        <p class="price">2 199 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 12 -->
+      <article class="product-card"
+               data-price="1699"
+               data-category="Навушники"
+               data-images="img/nav12.webp"
+               data-specs='{"Тип":"геймерська гарнітура","Підключення":"дротове","Вага":"300 г","Мікрофон":"з шумоподавленням"}'
+               data-short="Доступна геймерська гарнітура."
+               data-description="Onikuma GT839I — бюджетна гарнітура з акцентом на мікрофон та комфорт під час ігор.">
+        <img src="img/nav12.webp" alt="Onikuma GT839I">
+        <h3 class="product-title">Onikuma GT839I</h3>
+        <p class="price">1 699 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 13 -->
+      <article class="product-card"
+               data-price="2599"
+               data-category="Навушники"
+               data-images="img/nav13.webp"
+               data-specs='{"Bluetooth":"5.1","Автономність":"до 22 год","Вага":"240 г","Особливість":"пластиковий корпус"}'
+               data-short="Універсальні навушники для медіа."
+               data-description="Logitech G332 — проста і надійна модель з хорошою якістю за свою ціну; підходить для музики й ігор.">
+        <img src="img/nav13.webp" alt="Logitech G332">
+        <h3 class="product-title">Logitech G332</h3>
+        <p class="price">2 599 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 14 -->
+      <article class="product-card"
+               data-price="5499"
+               data-category="Навушники"
+               data-images="img/nav14.jpg"
+               data-specs='{"Bluetooth":"5.0","Автономність":"до 20 год","Вага":"240 г","Особливість":"легкість"}'
+               data-short="Безпровідна модель з гарною автономністю."
+               data-description="Razer Barracuda X 2022 — збалансовані, легкі, з чистим звучанням і комфортною посадкою. Підходять для гри й прослуховування музики.">
+        <img src="img/nav14.jpg" alt="Razer Barracuda X 2022">
+        <h3 class="product-title">Razer Barracuda X 2022</h3>
+        <p class="price">5 499 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 15 -->
+      <article class="product-card"
+               data-price="7499"
+               data-category="Навушники"
+               data-images="img/nav15.jpg"
+               data-specs='{"Bluetooth":"LDAC","Автономність":"до 30 год","Вага":"310 г","Особливість":"зручний кейс"}'
+               data-short="Преміальні навушники з наголосом на деталі звуку."
+               data-description="Sony Inzone H5 — навушники для геймерів з високою якістю звуку і комфортною посадкою.">
+        <img src="img/nav15.jpg" alt="Sony Inzone H5">
+        <h3 class="product-title">Sony Inzone H5</h3>
+        <p class="price">7 499 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+
+      <!-- 16 -->
+      <article class="product-card"
+               data-price="6999"
+               data-category="Навушники"
+               data-images="img/nav16.jpg"
+               data-specs='{"Bluetooth":"5.2","Автономність":"до 40 год","Вага":"270 г","Особливість":"бездротова версія"}'
+               data-short="Комфортні хедсети з тривалим часом роботи."
+               data-description="HyperX Cloud III WL — ергономічні навушники з чистим звуком та тривалим часом автономної роботи.">
+        <img src="img/nav16.jpg" alt="HyperX Cloud III WL">
+        <h3 class="product-title">HyperX Cloud III WL</h3>
+        <p class="price">6 999 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- OFFERS GRID -->
+<section id="offers" class="offers-grid-section">
+  <div class="container">
+    <h2>Пропозиції</h2>
+
+    <!-- Фільтр по ціні та сортування для Пропозицій -->
+    <div class="catalog-controls">
+      <form id="filter-form-offers" onsubmit="return false;" style="display:flex; gap:1rem; align-items:center;">
+        <div class="filter-price">
+          <label>Ціна від
+            <input type="number" id="price-min-offers" placeholder="мінімум" style="width:6ch;" />
+          </label>
+          <label>до
+            <input type="number" id="price-max-offers" placeholder="максимум" style="width:6ch;" />
+          </label>
+        </div>
+        <div class="sort-by">
+          <label>Сортувати:
+            <select id="sort-select-offers" style="padding:0.2em 0.5em;">
+              <option value="none">За замовчуванням</option>
+              <option value="price-asc">Ціна по зростанню</option>
+              <option value="price-desc">Ціна по спадінню</option>
+            </select>
+          </label>
+        </div>
+      </form>
+    </div>
+
+    <div class="offers-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;">
+      <!-- 17 -->
+      <div class="product-card"
+           data-price="2499"
+           data-category="Навушники"
+           data-images="img/nav17.jpg"
+           data-specs='{"Тип":"спорт/гарнітура","Bluetooth":"—","Автономність":"—","Вага":"180 г"}'
+           data-short="Легка спортивна гарнітура."
+           data-description="Bloody M590i Sports Red — розроблена для спорту: легка, стійка до поту та зручна фіксація.">
+        <img src="img/nav17.jpg" alt="Bloody M590i Sports Red">
+        <h4 class="product-title">Bloody M590i Sports Red</h4>
+        <p class="price">2 499 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 18 -->
+      <div class="product-card"
+           data-price="7499"
+           data-category="Навушники"
+           data-images="img/nav18.jpg"
+           data-specs='{"Bluetooth":"5.2","Автономність":"до 30 год","Вага":"260 г","Особливість":"покращений бас"}'
+           data-short="Потужний звук з акцентом на низьких частотах."
+           data-description="Barracuda X 2022 RBX — ігрові навушники з хорошим басом і комфортними амбушюрами.">
+        <img src="img/nav18.jpg" alt="Barracuda X 2022 RBX">
+        <h4 class="product-title">Barracuda X 2022 RBX</h4>
+        <p class="price">7 499 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 19 -->
+      <div class="product-card"
+           data-price="2799"
+           data-category="Навушники"
+           data-images="img/nav19.jpg"
+           data-specs='{"Тип":"геймерські","Віртуальний7.1":"так","Вага":"280 г","Мікрофон":"чіткий"}'
+           data-short="Геймерська модель з віртуальним 7.1."
+           data-description="Vertux Warfare 7.1 — забезпечує широку звукову сцену і точне позиціонування в іграх.">
+        <img src="img/nav19.jpg" alt="Vertux Warfare 7.1">
+        <h4 class="product-title">Vertux Warfare 7.1</h4>
+        <p class="price">2 799 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 20 -->
+      <div class="product-card"
+           data-price="1349"
+           data-category="Навушники"
+           data-images="img/nav20.webp"
+           data-specs='{"Тип":"моніторні","Підключення":"дротове","Вага":"200 г","Чутливість":"95 дБ"}'
+           data-short="Бюджетний варіант для дому."
+           data-description="Takstar TS-450 — прості навушники для медіа та базового моніторингу зі стабільною якістю за невелику ціну.">
+        <img src="img/nav20.webp" alt="Takstar TS-450">
+        <h4 class="product-title">Takstar TS-450</h4>
+        <p class="price">1 349 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 21 -->
+      <div class="product-card"
+           data-price="12999"
+           data-category="Навушники"
+           data-images="img/nav21.webp"
+           data-specs='{"Bluetooth":"5.2","Автономність":"до 40 год","Вага":"320 г","Кодек":"aptX Adaptive"}'
+           data-short="Професійна модель для консолей."
+           data-description="V2 Pro PS5 — оптимізовані навушники для ігор на консолі з низькою затримкою та потужним звуком.">
+        <img src="img/nav21.webp" alt="V2 Pro PS5">
+        <h4 class="product-title">V2 Pro PS5</h4>
+        <p class="price">12 999 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 22 -->
+      <div class="product-card"
+           data-price="1379"
+           data-category="Навушники"
+           data-images="img/nav22.webp"
+           data-specs='{"Тип":"бюджетні","Підключення":"дротове","Вага":"190 г","Чутливість":"96 дБ"}'
+           data-short="Доступні і надійні для щоденного використання."
+           data-description="A4Tech G575 — прості навушники з хорошою цінністю і працюють для дзвінків та музики.">
+        <img src="img/nav22.webp" alt="A4Tech G575">
+        <h4 class="product-title">A4Tech G575</h4>
+        <p class="price">1 379 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 23 -->
+      <div class="product-card"
+           data-price="3199"
+           data-category="Навушники"
+           data-images="img/nav23.webp"
+           data-specs='{"Bluetooth":"5.1","Автономність":"до 20 год","Вага":"230 г","Особливість":"компактні"}'
+           data-short="Компактні навушники для мобільних користувачів."
+           data-description="Xtrfy H2 Black — легкі, зручні та зручні для тривалих ігрових сесій.">
+        <img src="img/nav23.webp" alt="Xtrfy H2 Black">
+        <h4 class="product-title">Xtrfy H2 Black</h4>
+        <p class="price">3 199 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 24 -->
+      <div class="product-card"
+           data-price="3799"
+           data-category="Навушники"
+           data-images="img/nav24.webp"
+           data-specs='{"Тип":"моніторні","Підключення":"дротове","Вага":"260 г","Матеріал":"метал"}'
+           data-short="Якісні навушники з добрим балансом."
+           data-description="A4Tech M320 — міцні навушники, орієнтовані на довговічність і стабільний звук.">
+        <img src="img/nav24.webp" alt="A4Tech M320">
+        <h4 class="product-title">A4Tech M320</h4>
+        <p class="price">3 799 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 25 -->
+      <div class="product-card"
+           data-price="3599"
+           data-category="Навушники"
+           data-images="img/nav25.jpg"
+           data-specs='{"Bluetooth":"5.0","Автономність":"до 22 год","Вага":"250 г","Особливість":"комфортні амбушюри"}'
+           data-short="Комфортні накладні навушники для дому."
+           data-description="Corsair HS55 Carbon — відомі своєю зручністю і хорошим звуком, особливо для розмов і стрімінгу.">
+        <img src="img/nav25.jpg" alt="Corsair HS55 Carbon">
+        <h4 class="product-title">Corsair HS55 Carbon</h4>
+        <p class="price">3 599 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 26 -->
+      <div class="product-card"
+           data-price="9999"
+           data-category="Навушники"
+           data-images="img/nav26.webp"
+           data-specs='{"Bluetooth":"aptX","Автономність":"до 30 год","Вага":"290 г","Особливість":"гарний мікрофон"}'
+           data-short="Потужні бездротові навушники з хорошим мікрофоном."
+           data-description="Pro X Wireless — поєднання якісного звуку і зручного мікрофона для дзвінків і стримінгу.">
+        <img src="img/nav26.webp" alt="Pro X Wireless">
+        <h4 class="product-title">Pro X Wireless</h4>
+        <p class="price">9 999 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 27 -->
+      <div class="product-card"
+           data-price="4999"
+           data-category="Навушники"
+           data-images="img/nav27.jpg"
+           data-specs='{"Тип":"середній клас","Підключення":"дротове/USB","Вага":"270 г","Особливість":"зручна чашка"}'
+           data-short="Універсальні навушники для гри та роботи."
+           data-description="Lenovo Legion H600 — стійкі і зручні, з гарним співвідношенням ціни та якості.">
+        <img src="img/nav27.jpg" alt="Lenovo Legion H600">
+        <h4 class="product-title">Lenovo Legion H600</h4>
+        <p class="price">4 999 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+
+      <!-- 28 -->
+      <div class="product-card"
+           data-price="10999"
+           data-category="Навушники"
+           data-images="img/nav28.jpg"
+           data-specs='{"Bluetooth":"LDAC/aptX","Автономність":"до 35 год","Вага":"300 г","Особливість":"висока деталізація звуку"}'
+           data-short="Преміум-модель з акцентом на якість звучання."
+           data-description="Quantum 910X — навушники з високою деталізацією звуку, підходять для аудіофілів і професійних користувачів.">
+        <img src="img/nav28.jpg" alt="Quantum 910X">
+        <h4 class="product-title">Quantum 910X</h4>
+        <p class="price">10 999 ₴</p>
+        <button class="btn btn-add">Додати</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+  <!-- FEATURES SECTION -->
+<section id="features" class="features">
+  <div class="container">
+    <h2>Особливості</h2>
+    <div class="features-grid">
+      
+      <div class="feature-card">
+        <h4>Активне шумозаглушення</h4>
+        <p>Наша ANC-технологія з багаторівневою фільтрацією адаптується до будь-яких умов, блокуючи до 98 % зовнішніх шумів для повного занурення в музику.</p>
+      </div>
+
+      <div class="feature-card">
+        <h4>Ергономічний комфорт</h4>
+        <p>Антистресові амбушюри з меморі-піноматеріалу і легка алюмінієва конструкція забезпечують годинний комфорт навіть під час довгих сесій.</p>
+      </div>
+
+      <div class="feature-card">
+        <h4>До 30 годин роботи</h4>
+        <p>Потужний акумулятор гарантує до 30 годин відтворення музики з активованою ANC та до 45 годин — без неї.</p>
+      </div>
+
+      <div class="feature-card">
+        <h4>Швидка зарядка</h4>
+        <p>10-хвилинна підзарядка дає 5 годин відтворення, повний цикл — усього 1,5 години через USB-C.</p>
+      </div>
+
+      <div class="feature-card">
+        <h4>3D-просторовий звук</h4>
+        <p>Підтримка Dolby Atmos і власний алгоритм віртуалізації створюють ефект повного занурення в простір.</p>
+      </div>
+
+      <div class="feature-card">
+        <h4>Автоматичне підключення</h4>
+        <p>Технологія SmartLink миттєво з’єднує навушники з останнім пристроєм — більше не треба шукати в налаштуваннях Bluetooth.</p>
+      </div>
+
+      <div class="feature-card">
+        <h4>Мультипоінт</h4>
+        <p>Підтримка одночасного підключення до двох джерел: зручно перемикатися між телефоном та ноутбуком під час роботи.</p>
+      </div>
+
+      <div class="feature-card">
+        <h4>Голосові помічники</h4>
+        <p>Інтеграція з Siri, Google Assistant та Alexa дозволяє керувати треками, дзвінками і запитами без рук.</p>
+      </div>
+
+      <div class="feature-card">
+  <h4>Водозахист IPX5</h4>
+  <p>Клас захисту IPX5 гарантує, що навушники не бояться поту чи легкого дощу — ідеально для спорту та прогулянок на вулиці.</p>
+</div>
+
+<!-- Додаткові 3 таблички особливостей -->
+<div class="feature-card">
+  <h4>Bluetooth 5.2</h4>
+  <p>Новітній стандарт бездротового зв’язку для стабільного підключення та зниженого енергоспоживання.</p>
+</div>
+
+<div class="feature-card">
+  <h4>Безшовне оновлення ПЗ</h4>
+  <p>Автоматичні оновлення прошивки забезпечують найсвіжіші покращення звуку й функціоналу без зайвих зусиль.</p>
+</div>
+
+<div class="feature-card">
+  <h4>Екологічні матеріали</h4>
+  <p>Корпус та амбушюри виготовлені з перероблених матеріалів, що знижує вплив на довкілля без втрати якості.</p>
+</div>
+
+
+    </div>
+  </div>
+</section>
+
+
+
+
+  <!-- TECHNOLOGY SECTION -->
+<section id="technology" class="technology">
+  <div class="container">
+    <h2 class="section-title glow-heading">Технології</h2>
+    <div class="tech-grid">
+      
+      <div class="tech-card">
+        <h4>Bluetooth 5.2 з низькою затримкою</h4>
+        <p>Стабільний бездротовий зв’язок і мінімальна латентність для ігор та стрімінгу.</p>
+      </div>
+      
+      <div class="tech-card">
+        <h4>Кодек aptX Adaptive</h4>
+        <p>Автоматичне налаштування бітрейту для оптимального балансу якості та стабільності.</p>
+      </div>
+      
+      <div class="tech-card">
+        <h4>LDAC 990 kbps</h4>
+        <p>Високоякісна передача звуку до 24-біт/96 кГц без проводів.</p>
+      </div>
+      
+      <div class="tech-card">
+        <h4>ANC з інтелектуальною фільтрацією</h4>
+        <p>Smart ANC аналізує шум довкілля та адаптує фільтрацію в реальному часі.</p>
+      </div>
+      
+      <div class="tech-card">
+        <h4>Мікрофони з шумопригніченням</h4>
+        <p>Три MEMS-мікрофони з алгоритмом шумозаглушення для кришталево чистої мови.</p>
+      </div>
+      
+      <div class="tech-card">
+        <h4>3D-просторовий звук</h4>
+        <p>Підтримка Dolby Atmos та власні алгоритми віртуалізації для повного занурення.</p>
+      </div>
+      
+      <div class="tech-card">
+        <h4>Безпровідна зарядка Qi</h4>
+        <p>Просто покладіть кейс на будь-який Qi-зарядник — повний цикл за 2 години.</p>
+      </div>
+      
+      <div class="tech-card">
+        <h4>IPX7 водозахист</h4>
+        <p>Повний захист від занурення на 1 м до 30 хв — ідеально для спорту.</p>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+
+
+
+  <!-- WHY CHOOSE US SECTION -->
+<section id="why" class="why-choose-us py-5">
+  <div class="container">
+    <h2 class="section-title text-center mb-4">Чому обирають нас</h2>
+    <div class="why-grid">
+      <div class="why-card">
+        <h4>Преміальна якість звуку</h4>
+        <p>Сучасні драйвери і точне налаштування передають кожну деталь треку без спотворень.</p>
+      </div>
+      <div class="why-card">
+        <h4>Європейська сертифікація</h4>
+        <p>Відповідає стандартам CE та RoHS, гарантує безпечність та екологічність матеріалів.</p>
+      </div>
+      <div class="why-card">
+        <h4>Швидка та безкоштовна доставка</h4>
+        <p>Доставка по Україні впродовж 1–2 днів без додаткової плати.</p>
+      </div>
+      <div class="why-card">
+        <h4>24/7 технічна підтримка</h4>
+        <p>Наші фахівці на зв'язку цілодобово, готові допомогти з будь-яким питанням.</p>
+      </div>
+      <div class="why-card">
+        <h4>Гарантія 2 роки</h4>
+        <p>Офіційна гарантія виробника без прихованих умов та доплат.</p>
+      </div>
+      <div class="why-card">
+        <h4>Лояльні умови повернення</h4>
+        <p>Повернення товару протягом 14 днів без пояснення причин.</p>
+      </div>
+
+      <div class="why-card">
+  <h4>Прозора ціноутворення</h4>
+  <p>Усі ціни максимально відкриті — жодних прихованих комісій або надбавок. Ви завжди бачите остаточну вартість на сайті.</p>
+</div>
+
+<div class="why-card">
+  <h4>Партнерство з провідними брендами</h4>
+  <p>Ми офіційні дистриб’ютори найвідоміших світових виробників: гарантуємо справжність і повну підтримку виробника.</p>
+</div>
+    </div>
+  </div>
+</section>
+
+<!-- CHECKLIST SECTION -->
+<section id="checklist" class="checklist py-5">
+  <div class="container">
+    <h2 class="text-center mb-4">Чек-ліст перед покупкою</h2>
+    <div class="checklist-grid">
+      <!-- 1 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Тип підключення</h4>
+        <p>Bluetooth 5.2 або дротове AUX/USB-C — оберіть оптимальний спосіб для свого пристрою.</p>
+      </div>
+      <!-- 2 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Активне шумозаглушення</h4>
+        <p>Переконайтесь, що ANC блокує більшість зовнішніх шумів для комфортного прослуховування.</p>
+      </div>
+      <!-- 3 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Автономність</h4>
+        <p>Не менше ніж 25–30 годин роботи від одного заряду з врахуванням ANC і до 45 годин без нього.</p>
+      </div>
+      <!-- 4 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Швидка зарядка</h4>
+        <p>10–15 хвилин підзарядки дають щонайменше 4–6 годин прослуховування.</p>
+      </div>
+      <!-- 5 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Комфорт та вага</h4>
+        <p>Легка вага та м’які амбушюри з піноматеріалу для тривалого носіння без дискомфорту.</p>
+      </div>
+      <!-- 6 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Якість мікрофона</h4>
+        <p>Шумопригнічувальні мікрофони гарантують чіткість голосу під час дзвінків і конференцій.</p>
+      </div>
+      <!-- 7 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Підтримка кодеків</h4>
+        <p>aptX, AAC або LDAC для передачі Hi-Res звуку без втрат якості.</p>
+      </div>
+      <!-- 8 -->
+      <div class="check-item">
+        <i class="fas fa-check-circle"></i>
+        <h4>Водозахист</h4>
+        <p>Характеристика IPX4–IPX7 для захисту від поту та вологи — важливо для спорту та вулиці.</p>
+      </div>
+
+      <div class="check-item">
+  <i class="fas fa-check-circle"></i>
+  <h4>Режим низької затримки</h4>
+  <p>Спеціальний геймерський режим із затримкою менше 60 мс для бездоганної синхронізації звуку та відео.</p>
+</div>
+
+<div class="check-item">
+  <i class="fas fa-check-circle"></i>
+  <h4>Мобільний додаток</h4>
+  <p>Фірмовий додаток для тонкого налаштування еквалайзера, оновлення прошивки та керування звуковими профілями.</p>
+</div>
+    </div>
+  </div>
+</section>
+
+
+<section id="reviews" class="reviews-section">
+  <h2 class="reviews-title">Відгуки клієнтів</h2>
+  <div class="reviews-grid">
+    <div class="review-card">
+      <h4>Анна</h4>
+      <p>Звучання чудове, батарея тримає 12 годин. Рекомендую!</p>
+    </div>
+    <div class="review-card">
+      <h4>Сергій</h4>
+      <p>Гарний звук, але інколи трішки зсув Bluetooth.</p>
+    </div>
+    <div class="review-card">
+      <h4>Ольга</h4>
+      <p>Професійні студійні навушники. Якість матеріалів на вищому рівні.</p>
+    </div>
+    <div class="review-card">
+      <h4>Іван</h4>
+      <p>Звук хороший, але не дуже зручні для довгої роботи.</p>
+    </div>
+    <div class="review-card">
+      <h4>Марія</h4>
+      <p>Круті геймерські навушники з підсвіткою — повне занурення!</p>
+    </div>
+    <div class="review-card">
+      <h4>Олександр</h4>
+      <p>Хороший баланс ціна/якість. Амбушюри зручні.</p>
+    </div>
+    <div class="review-card">
+      <h4>Наталя</h4>
+      <p>Прийшли швидко! Звукова ізоляція просто на висоті.</p>
+    </div>
+    <div class="review-card">
+      <h4>Дмитро</h4>
+      <p>Добрі для розмов, але басів хочеться більше.</p>
+    </div>
+    <div class="review-card">
+      <h4>Юлія</h4>
+      <p>Стильний дизайн, легкі та комфортні. Кейс із підзарядкою.</p>
+    </div>
+    <div class="review-card">
+      <h4>Віктор</h4>
+      <p>Трішки дорогувато, але звук ідеальний.</p>
+    </div>
+
+    <div class="review-card">
+  <h4>Софія</h4>
+  <p>Дуже зручні та легкі, чудово підходять для тривалого носіння. Дякую!</p>
+</div>
+<div class="review-card">
+  <h4>Максим</h4>
+  <p>Якісна збірка та чіткий звук, але хотілося б трохи більше басів. В цілому — відмінно.</p>
+</div>
+
+  </div>
+</section>
+
+<section id="faq" class="faq py-5">
+  <div class="container">
+    <h2 class="section-title text-center mb-4">FAQ — Найпоширеніші запитання</h2>
+    <div class="faq-grid">
+
+      <details class="faq-item">
+        <summary>Скільки триває гарантія?</summary>
+        <p>2 роки офіційної гарантії від виробника без прихованих умов.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Як швидко відбувається доставка?</summary>
+        <p>Безкоштовна доставка по Україні за 1–3 робочі дні. Експрес-доставка доступна за додаткову плату.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Чи можна повернути або обміняти товар?</summary>
+        <p>Повернення протягом 14 днів без пояснення причин. Обмін можливий за наявності бажаної моделі.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Які способи оплати доступні?</summary>
+        <p>Visa/Mastercard, Приват24, оплата частинами “Оплата частинами”, готівкою при отриманні.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Яка автономність навушників?</summary>
+        <p>До 30 годин з активним шумозаглушенням (ANC) та до 45 годин без нього. Швидка зарядка: 10 хв → 5 годин роботи.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Як підключити навушники по Bluetooth?</summary>
+        <p>Утримуйте кнопку живлення 3 секунди до миготіння світлодіода, потім оберіть “YourModel” у списку Bluetooth на вашому ґаджеті.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Які аудіокодеки підтримуються?</summary>
+        <p>AAC, aptX, aptX Adaptive та LDAC для передачі Hi-Res звуку.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Чи є фірмовий мобільний додаток?</summary>
+        <p>Так, доступний для iOS та Android: налаштування еквалайзера, оновлення прошивки, режими ANC та геймерський режим.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Як оновити прошивку навушників?</summary>
+        <p>Відкрийте додаток → “Налаштування пристрою” → “Оновлення прошивки” → “Перевірити оновлення” та слідуйте інструкціям.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Що робити, якщо звук переривається чи чути шуми?</summary>
+        <p>Переконайтесь, що заряд батареї в нормі, навушники не далеко від пристрою, спробуйте перезавантажити або оновити прошивку.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Який рівень захисту від води й поту?</summary>
+        <p>Клас IPX5: захист від поту та бризок води — підійде для спорту та прогулянок у дощ.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Чи підходять навушники для ігор і відеоконференцій?</summary>
+        <p>Підтримка геймерського режиму з низькою затримкою (&lt;60 мс) та шумозаглушення під час дзвінків.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Чи можна використовувати навушники з комп’ютером?</summary>
+        <p>Так, через Bluetooth або кабель USB-C/AUX — ніяких обмежень.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Як зв’язатися з техпідтримкою?</summary>
+        <p>Пишіть на <a href="mailto:support@example.com">support@example.com</a> або телефонуйте 0 800 123 456. Працюємо 24/7.</p>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+
+<section id="payment" class="payment-section">
+  <div class="container">
+    <h2 class="section-title glow-heading">Способи оплати</h2>
+    <div class="payment-cards">
+      <div class="payment-card">
+        <img src="img/zak1.svg" alt="Visa / MasterCard" class="card-icon">
+        <h3 class="card-title">Visa / MasterCard</h3>
+        <p class="card-text">Миттєве підтвердження платежу без додаткових комісій.</p>
+      </div>
+      <div class="payment-card">
+        <img src="img/zak2.png" alt="PayPal" class="card-icon">
+        <h3 class="card-title">PayPal</h3>
+        <p class="card-text">Безпечні онлайн-платежі без розкриття даних картки.</p>
+      </div>
+      <div class="payment-card">
+        <img src="img/zak4.png" alt="Apple Pay" class="card-icon">
+        <h3 class="card-title">Apple Pay</h3>
+        <p class="card-text">Оплата одним дотиком із підтримкою Face/Touch ID.</p>
+      </div>
+      <div class="payment-card">
+        <img src="img/zak3.png" alt="Google Pay" class="card-icon">
+        <h3 class="card-title">Google Pay</h3>
+        <p class="card-text">Швидкі платежі через ваш Google-акаунт.</p>
+      </div>
+    
+    </div>
+  </div>
+</section>
+
+<section id="guarantees" class="guarantee-section">
+  <div class="container">
+    <h2 class="section-title glow-heading">Наші гарантії</h2>
+    <div class="guarantee-cards">
+      <div class="guarantee-card">
+        <img src="img/gar1.jpg" alt="30-денне повернення" class="card-icon">
+        <h3 class="card-title">30-денне повернення</h3>
+        <p class="card-text">Поверніть товар без зайвих питань протягом 30 днів.</p>
+      </div>
+      <div class="guarantee-card">
+        <img src="img/gar2.png" alt="2-річна гарантія" class="card-icon">
+        <h3 class="card-title">2-річна гарантія</h3>
+        <p class="card-text">Офіційна гарантія виробника на 24 місяці.</p>
+      </div>
+      <div class="guarantee-card">
+        <img src="img/gar3.jpg" alt="Оригінальний товар" class="card-icon">
+        <h3 class="card-title">100% оригінал</h3>
+        <p class="card-text">Ми продаємо тільки ліцензійну продукцію зі сертифікатами.</p>
+      </div>
+      <div class="guarantee-card">
+        <img src="img/gar4.svg" alt="Гарантія ціни" class="card-icon">
+        <h3 class="card-title">Гарантія ціни</h3>
+        <p class="card-text">Повернемо різницю, якщо знайдете дешевше на іншому сайті.</p>
+      </div>
+    </div>
+  </div>
+</section>
+    
+ 
+<section id="about-stats" class="about-stats py-5">
+  <div class="container">
+    <h2 class="section-title text-center mb-4">Наші досягнення</h2>
+    <div class="stats-grid">
+      
+      <div class="stat-card">
+        <div class="stat-value">10<span>+</span></div>
+        <div class="stat-label">Років на ринку</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-value">50<span>+</span></div>
+        <div class="stat-label">Провідних брендів</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-value">5 000<span>+</span></div>
+        <div class="stat-label">Задоволених клієнтів</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-value">98<span>%</span></div>
+        <div class="stat-label">Рівень задоволеності</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-value">24/7</div>
+        <div class="stat-label">Підтримка клієнтів</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-value">100<span>%</span></div>
+        <div class="stat-label">Гарантія оригінальності</div>
+      </div>
+
+      <div class="stat-card">
+  <div class="stat-value">1 000<span>+</span></div>
+  <div class="stat-label">Різних моделей</div>
+</div>
+
+<div class="stat-card">
+  <div class="stat-value">15<span>+</span></div>
+  <div class="stat-label">Країн доставки</div>
+</div>
+
+<div class="stat-card">
+  <div class="stat-value">99.9<span>%</span></div>
+  <div class="stat-label">Успішних доставок</div>
+</div>
+
+<div class="stat-card">
+  <div class="stat-value">7 500<span>+</span></div>
+  <div class="stat-label">Позитивних відгуків</div>
+</div>
+
+    </div>
+  </div>
+</section>
+
+
+ 
+ <section id="contact" class="contact">
+  <div class="container">
+    <h2>Контакти</h2>
+    <p>Телефон: +38 (050) 123-45-67</p>
+    <p>Email: support@earstore.ua</p>
+    <p>Адреса: вул. Хрещатик, 10, Київ, Україна</p>
+  <form id="fake-form" class="contact-form">
+    <input type="text" name="name" placeholder="Ваше ім’я" required>
+    <input type="email" name="email" placeholder="Ваш email" required>
+    <textarea name="message" rows="4" placeholder="Ваше повідомлення" required></textarea>
+   <button type="submit" class="btn-submit">Надіслати</button>
+
+  </form>
+   
+     <div id="fake-success" class="hidden" style="text-align:center; margin-top:1rem;">
+    <strong>Дякуємо! Ваш запит надіслано.</strong>
+  </div>
+</section>
+
+ 
+  <footer class="site-footer">
+    <div class="container footer-wrapper">
+      <div class="footer-links">
+        <a href="#privacy">Політика конфіденційності</a>
+        <a href="#terms">Умови користування</a>
+      </div>
+      <div class="footer-copy">
+        &copy; 2025 EarStore. Всі права захищені.
+      </div>
+    </div>
+   
+
+  </footer>
+
+
+  <script src="js/script.js"></script>
+  
+
+<div id="product-modal" class="product-modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-overlay" data-close></div>
+  <div class="modal-panel" role="document">
+    <button class="modal-close" aria-label="Закрити (Esc)" data-close>&times;</button>
+
+    <div class="modal-grid">
+    
+      <div class="modal-media">
+        <div class="modal-main-img">
+          <img src="" alt="" id="modal-main-image">
+        </div>
+        <div class="modal-thumbs" id="modal-thumbs"></div>
+      </div>
+
+    
+      <div class="modal-info">
+        <div class="breadcrumbs-small" id="modal-breadcrumbs">Навушники</div>
+        <h2 id="modal-title">Title</h2>
+        <div class="modal-price" id="modal-price">0 ₴</div>
+        <p class="modal-short" id="modal-short"></p>
+
+        <div class="modal-actions">
+          <button id="modal-add" class="btn btn-add">Додати в кошик</button>
+          <button id="modal-buy" class="btn btn-buy">Купити</button>
+        </div>
+<!-- Toast -->
+
+        <h4>Характеристики</h4>
+        <table class="specs-table" id="modal-specs" role="table"></table>
+
+        <h4>Опис</h4>
+        <div class="modal-desc" id="modal-desc"></div>
+
+        <h4>Відгуки</h4>
+        <div id="modal-reviews" class="modal-reviews">
+          <p class="muted" id="modal-no-reviews">Поки відгуків немає.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<script>
+(function(){
+  document.addEventListener('DOMContentLoaded', () => {
+    // ---------------------------
+    // If modal missing -> create a simple modal shell (so Details always works)
+    // ---------------------------
+    function ensureModalExists() {
+      if (document.getElementById('product-modal')) return;
+      const tpl = document.createElement('div');
+      tpl.id = 'product-modal';
+      tpl.className = 'ps-modal hidden';
+      tpl.setAttribute('aria-hidden', 'true');
+      tpl.innerHTML = `
+        <div class="modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;"></div>
+        <div class="modal-panel" role="dialog" aria-modal="true" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:80%;max-width:980px;background:#fff;z-index:9999;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.3);border-radius:8px;display:flex;gap:16px;max-height:80vh;overflow:auto;">
+          <button class="modal-close" data-close type="button" aria-label="Close" style="position:absolute;right:12px;top:10px;background:#fff;border:1px solid #ccc;border-radius:6px;padding:4px 8px;cursor:pointer;">✕</button>
+          <div style="flex:1;min-width:260px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+            <img id="modal-main-image" src="" alt="" style="max-width:100%;height:auto;border-radius:6px;background:#f6f6f6;padding:12px;">
+            <div id="modal-thumbs" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
+          </div>
+          <div style="flex:1;min-width:260px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+              <div style="width:48px;height:48px;border-radius:6px;background:#f0f0f0;border:1px solid #eee;"></div>
+              <div>
+                <div id="modal-title" style="font-weight:700;font-size:1.15rem;"></div>
+                <div id="modal-price" style="color:#0a6bff;font-weight:700;margin-top:6px;"></div>
+              </div>
+            </div>
+            <p id="modal-short" style="color:#666;margin:8px 0;"></p>
+            <div style="display:flex;gap:8px;margin:12px 0;">
+              <button id="modal-add" class="btn" style="background:#f4a500;border-radius:8px;padding:10px 14px;border:none;color:#fff;cursor:pointer;">Додати в кошик</button>
+              <button id="modal-buy" class="btn" style="background:#16a34a;border-radius:8px;padding:10px 14px;border:none;color:#fff;cursor:pointer;">Купити</button>
+            </div>
+            <h4 style="margin-top:12px;">Характеристики</h4>
+            <table id="modal-specs" style="width:100%;border-collapse:collapse;margin-top:8px;"></table>
+            <h4 style="margin-top:12px;">Опис</h4>
+            <div id="modal-desc" style="color:#444;margin-top:6px;"></div>
+            <div id="modal-reviews" style="margin-top:10px;color:#666;"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(tpl);
+    }
+
+    ensureModalExists();
+
+    const modal = document.getElementById('product-modal');
+    const overlay = modal.querySelector('.modal-overlay');
+    const panel = modal.querySelector('.modal-panel');
+    const btnClose = modal.querySelector('.modal-close');
+    const mainImg = document.getElementById('modal-main-image');
+    const thumbsWrap = document.getElementById('modal-thumbs');
+    const titleEl = document.getElementById('modal-title');
+    const priceEl = document.getElementById('modal-price');
+    const shortEl = document.getElementById('modal-short');
+    const specsTable = document.getElementById('modal-specs');
+    const descEl = document.getElementById('modal-desc');
+    const reviewsWrap = document.getElementById('modal-reviews');
+
+    let lastFocused = null;
+
+    // ---------------------------
+    // Utilities: open/close modal + keyboard trap
+    // ---------------------------
+    function openModal() {
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('ps-modal-open');
+      try { if (btnClose) btnClose.focus(); } catch(e) {}
+      document.addEventListener('keydown', onKeyDown);
+    }
+    function closeModal() {
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('ps-modal-open');
+      try { if (lastFocused) lastFocused.focus(); } catch(e) {}
+      if (thumbsWrap) thumbsWrap.innerHTML = '';
+      if (mainImg) mainImg.src = '';
+      document.removeEventListener('keydown', onKeyDown);
+    }
+    function onKeyDown(e) {
+      if (e.key === 'Escape') { closeModal(); return; }
+      if (e.key === 'Tab' && panel) {
+        const focusable = panel.querySelectorAll('a,button,input,textarea,select,[tabindex]:not([tabindex="-1"])');
+        if (!focusable.length) return;
+        const arr = Array.from(focusable);
+        const first = arr[0], last = arr[arr.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+
+    if (overlay) overlay.addEventListener('click', closeModal);
+    if (btnClose) btnClose.addEventListener('click', closeModal);
+    modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeModal));
+
+    // ---------------------------
+    // Ensure each product-card has a Details button (class .ps-btn-details)
+    // ---------------------------
+    function ensureDetailsButtons() {
+      document.querySelectorAll('.product-card').forEach(card => {
+        if (card.querySelector('.ps-btn-details')) return;
+        const addBtn = card.querySelector('.btn-add');
+        const detailsBtn = document.createElement('button');
+        detailsBtn.type = 'button';
+        detailsBtn.className = 'ps-btn-details';
+        detailsBtn.textContent = 'Деталі';
+        detailsBtn.style.cursor = 'pointer';
+        // insert after addBtn if present
+        if (addBtn && addBtn.parentNode) addBtn.parentNode.insertBefore(detailsBtn, addBtn.nextSibling);
+        else card.appendChild(detailsBtn);
+      });
+    }
+
+    ensureDetailsButtons();
+
+    // ---------------------------
+    // Build modal content from a .product-card
+    // ---------------------------
+    function openModalFromCard(card) {
+      if (!modal || !card) return;
+      lastFocused = document.activeElement;
+
+      // title / price / short / desc
+      const titleText = (card.querySelector('.product-title')?.textContent || '').trim();
+      const priceText = (card.querySelector('.price')?.textContent || (card.dataset.price ? card.dataset.price + ' ₴' : '')).trim();
+      const shortText = card.dataset.short || '';
+      const descText = card.dataset.description || '';
+
+      if (titleEl) titleEl.textContent = titleText;
+      if (priceEl) priceEl.textContent = priceText;
+      if (shortEl) shortEl.textContent = shortText;
+      if (descEl) descEl.textContent = descText;
+
+      // set modal product id so other handlers (cart) can read it
+      const productId = card.dataset.id || card.dataset.productId || titleText.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
+      if (productId) modal.dataset.productId = productId;
+      else delete modal.dataset.productId;
+
+      // --- render modal buttons according to cart state (reads localStorage) ---
+      try {
+        const mAdd = document.getElementById('modal-add');
+        const mBuy = document.getElementById('modal-buy');
+        if (mAdd && !mAdd.dataset.origText) mAdd.dataset.origText = mAdd.textContent.trim();
+        if (mBuy && !mBuy.dataset.origText) mBuy.dataset.origText = mBuy.textContent.trim();
+
+        const store = localStorage.getItem('earstore_cart_v1');
+        const cartObj = store ? JSON.parse(store) : {};
+        const inCart = !!(productId && cartObj && cartObj[productId]);
+
+        if (mAdd) {
+          if (inCart) {
+            mAdd.textContent = 'Додано';
+            mAdd.disabled = true;
+            mAdd.classList.add('added');
+          } else {
+            mAdd.textContent = mAdd.dataset.origText || 'Додати в кошик';
+            mAdd.disabled = false;
+            mAdd.classList.remove('added');
+          }
+        }
+        if (mBuy) {
+          if (inCart) {
+            mBuy.textContent = 'Куплено';
+            mBuy.disabled = true;
+            mBuy.classList.add('bought');
+          } else {
+            mBuy.textContent = mBuy.dataset.origText || 'Купити';
+            mBuy.disabled = false;
+            mBuy.classList.remove('bought');
+          }
+        }
+      } catch(e) {
+        // ignore
+      }
+
+      // specs
+      if (specsTable) {
+        specsTable.innerHTML = '';
+        let specs = {};
+        try { specs = card.dataset.specs ? JSON.parse(card.dataset.specs) : {}; } catch(e){ specs = {}; }
+        if (!Object.keys(specs).length) {
+          specsTable.innerHTML = '<tr><td colspan="2" style="padding:6px;color:#666">Характеристики відсутні</td></tr>';
+        } else {
+          for (const k in specs) {
+            const tr = document.createElement('tr');
+            const th = document.createElement('th'); th.textContent = k; th.style.textAlign = 'left'; th.style.padding = '6px 8px';
+            const td = document.createElement('td'); td.textContent = specs[k]; td.style.padding = '6px 8px';
+            tr.appendChild(th); tr.appendChild(td);
+            specsTable.appendChild(tr);
+          }
+        }
+      }
+
+      // images + thumbs
+      if (thumbsWrap) thumbsWrap.innerHTML = '';
+      let imgs = [];
+      if (card.dataset.images) imgs = card.dataset.images.split(',').map(s => s.trim()).filter(Boolean);
+      if (!imgs.length) {
+        const imgEl = card.querySelector('img');
+        if (imgEl && imgEl.src) imgs = [imgEl.src];
+      }
+      if (!imgs.length) imgs = [''];
+      if (mainImg) { mainImg.src = imgs[0] || ''; mainImg.alt = titleText || 'Товар'; }
+
+      imgs.forEach((src, idx) => {
+        if (!thumbsWrap) return;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ps-thumb' + (idx === 0 ? ' active' : '');
+        b.style.border = 'none';
+        b.style.padding = '0';
+        b.style.background = 'transparent';
+        const im = document.createElement('img');
+        im.src = src;
+        im.alt = (titleText || '') + ' ' + (idx + 1);
+        im.style.width = '56px';
+        im.style.height = '56px';
+        im.style.objectFit = 'cover';
+        im.style.borderRadius = '6px';
+        im.style.boxShadow = idx===0 ? '0 0 0 2px rgba(0,0,0,0.06) inset' : 'none';
+        b.appendChild(im);
+        b.addEventListener('click', function(){
+          if (mainImg) mainImg.src = src;
+          thumbsWrap.querySelectorAll('.ps-thumb').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+        });
+        thumbsWrap.appendChild(b);
+      });
+
+      // reviews placeholder
+      if (reviewsWrap) {
+        reviewsWrap.innerHTML = '<p style="color:#666;margin-top:8px;">Поки відгуків немає.</p>';
+      }
+
+      // show modal
+      openModal();
+    }
+
+    // ---------------------------
+    // Delegated click handler: details button, image/title open modal
+    // ---------------------------
+    document.addEventListener('click', function(e){
+      const detailsBtn = e.target.closest && e.target.closest('.ps-btn-details');
+      if (detailsBtn) {
+        e.preventDefault && e.preventDefault();
+        e.stopPropagation && e.stopPropagation();
+        const card = detailsBtn.closest && detailsBtn.closest('.product-card');
+        if (card) openModalFromCard(card);
+        return;
+      }
+
+      // if clicked image or title inside product-card (but not a button), open modal
+      if ((e.target.matches && (e.target.matches('img') || e.target.matches('.product-title'))) ) {
+        // ignore clicks on buttons inside
+        if (e.target.closest('button')) return;
+        const card = e.target.closest && e.target.closest('.product-card');
+        if (card) {
+          e.preventDefault && e.preventDefault();
+          openModalFromCard(card);
+        }
+        return;
+      }
+    }, false);
+
+    // expose small helper to re-scan (in case new cards are injected dynamically)
+    window.psEnsureDetailsButtons = ensureDetailsButtons;
+
+  }); // DOMContentLoaded
+})();
+</script>
+<script>
+(function(){
+  const STORAGE_KEY = 'earstore_cart_v1';
+
+  // ---------- helpers ----------
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const slug = s => (s||'').toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
+
+  function getCart(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch(e){return{}} }
+  function setCart(c){ localStorage.setItem(STORAGE_KEY, JSON.stringify(c||{})); updateCartCount(); }
+  function inCart(id){ const c=getCart(); return !!c[id]; }
+  function updateCartCount(){
+    const c = getCart();
+    const n = Object.keys(c).length;
+    const el = $('#cart-count');
+    if (el) el.textContent = String(n);
+  }
+  function getPidFromCard(card){
+    if (!card) return null;
+    return card.dataset.productId || card.dataset.id || slug(card.querySelector('.product-title')?.textContent||'');
+  }
+
+  function toast(msg){
+    let t = $('#added-toast');
+    if(!t){
+      t = document.createElement('div');
+      t.id = 'added-toast';
+      Object.assign(t.style,{
+        position:'fixed', right:'16px', top:'16px', zIndex:999999,
+        background:'rgba(0,0,0,0.85)', color:'#fff', padding:'10px 12px',
+        borderRadius:'8px', fontSize:'14px', fontWeight:'600',
+        boxShadow:'0 6px 20px rgba(0,0,0,.35)'
+      });
+      document.body.appendChild(t);
+    }
+    t.textContent = msg || 'Додано в кошик';
+    t.style.opacity = '1';
+    setTimeout(()=>{ t.style.transition='opacity .25s'; t.style.opacity='0'; }, 1200);
+  }
+
+  // ---------- UI sync ----------
+  function markCardButtons(pid){
+    $$('.product-card').forEach(card=>{
+      const id = getPidFromCard(card);
+      if (id !== pid) return;
+      const addBtn = card.querySelector('.btn-add');
+      if (addBtn){
+        addBtn.textContent = 'Додано';
+        addBtn.disabled = true;
+        addBtn.classList.add('added');
+        addBtn.setAttribute('aria-pressed','true');
+      }
+    });
+  }
+  function markModalButtons(pid){
+    const modal = $('#product-modal');
+    if (!modal || modal.dataset.productId !== pid) return;
+    const mAdd = $('#modal-add'), mBuy = $('#modal-buy');
+    if (mAdd){ mAdd.textContent='Додано'; mAdd.disabled=true; mAdd.classList.add('added'); }
+    if (mBuy){ mBuy.textContent='Куплено'; mBuy.disabled=true; mBuy.classList.add('bought'); }
+  }
+  function resetModalButtonsIfNotInCart(){
+    const modal = $('#product-modal');
+    if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
+    const pid = modal.dataset.productId;
+    const mAdd = $('#modal-add'), mBuy = $('#modal-buy');
+    if (!inCart(pid)){
+      if (mAdd){ mAdd.textContent='Додати в кошик'; mAdd.disabled=false; mAdd.classList.remove('added'); mAdd.type='button'; }
+      if (mBuy){ mBuy.textContent='Купити'; mBuy.disabled=false; mBuy.classList.remove('bought'); mBuy.type='button'; }
+    } else {
+      markModalButtons(pid);
+    }
+  }
+
+  function syncAllFromCart(){
+    updateCartCount();
+    const c = getCart();
+    Object.keys(c).forEach(pid => markCardButtons(pid));
+    resetModalButtonsIfNotInCart();
+  }
+
+  // ---------- cart ops ----------
+  function addToCart(pid, meta={}){
+    if (!pid) return false;
+    const cart = getCart();
+    if (cart[pid]) return false; // вже є — не дублюємо
+    cart[pid] = { qty:1, title:meta.title||'', price:meta.price||'' };
+    setCart(cart);
+    markCardButtons(pid);
+    markModalButtons(pid);
+    toast(meta.title ? `${meta.title} — додано` : 'Додано в кошик');
+    return true;
+  }
+
+  // ---------- events ----------
+  document.addEventListener('click', (e)=>{
+    // Кнопка "Додати" на картці
+    const addBtn = e.target.closest?.('.btn-add');
+    if (addBtn){
+      e.preventDefault();
+      const card = addBtn.closest('.product-card');
+      const pid = getPidFromCard(card);
+      const title = card?.querySelector('.product-title')?.textContent?.trim() || '';
+      const price = card?.dataset.price ? (card.dataset.price+' ₴') : (card?.querySelector('.price')?.textContent?.trim() || '');
+      if (addBtn.disabled) return;
+      addBtn.disabled = true;                 // миттєво блокуємо даблклік
+      addToCart(pid, {title, price});
+      return;
+    }
+
+    // Кнопки в модалці
+    const mAdd = e.target.closest?.('#modal-add');
+    if (mAdd){
+      e.preventDefault();
+      if (mAdd.disabled) return;
+      const modal = $('#product-modal');
+      const pid = modal?.dataset.productId;
+      const title = $('#modal-title')?.textContent?.trim() || '';
+      const price = $('#modal-price')?.textContent?.trim() || '';
+      mAdd.disabled = true;
+      addToCart(pid, {title, price});
+      return;
+    }
+
+    const mBuy = e.target.closest?.('#modal-buy');
+    if (mBuy){
+      e.preventDefault();
+      if (mBuy.disabled) return;
+      const modal = $('#product-modal');
+      const pid = modal?.dataset.productId;
+      const title = $('#modal-title')?.textContent?.trim() || '';
+      const price = $('#modal-price')?.textContent?.trim() || '';
+      mBuy.disabled = true;
+      addToCart(pid, {title, price}); // додаємо, якщо ще не було
+      // Текст "Куплено" виставиться в markModalButtons(pid)
+      return;
+    }
+  });
+
+  // Слідкуємо, коли модалка відкрилась, щоб показати правильні тексти кнопок
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // тип кнопок на картках = button (щоб не сабмітило форми)
+    $$('.product-card .btn-add').forEach(b=> b.type='button');
+
+    // MutationObserver на атрибут aria-hidden модалки
+    const modal = $('#product-modal');
+    if (modal){
+      const obs = new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          if (m.attributeName === 'aria-hidden' &&
+              modal.getAttribute('aria-hidden') === 'false'){
+            // модалка щойно відкрилась
+            // невелика затримка, щоб встигли проставитись дані
+            setTimeout(resetModalButtonsIfNotInCart, 30);
+          }
+        });
+      });
+      obs.observe(modal, { attributes:true });
+    }
+    // початкова синхронізація
+    syncAllFromCart();
+  });
+
+  // експорт для дебагу
+  window.earCart = { getCart, setCart, addToCart, syncAllFromCart };
+})();
+// Зберігаємо список доданих товарів (по id або назві)
+let addedProducts = new Set();
+
+// Оновлення лічильника
+function updateCartCount() {
+    document.getElementById('cart-count').textContent = addedProducts.size;
+}
+
+// Функція додавання товару
+function addToCart(productId, buttons) {
+    if (!addedProducts.has(productId)) {
+        addedProducts.add(productId);
+        updateCartCount();
+
+        // Змінюємо вигляд кнопок
+        buttons.forEach(btn => {
+            btn.textContent = 'Додано';
+            btn.disabled = true;
+        });
+
+        // Показуємо чорний прозорий квадратик-повідомлення
+        showAddedNotification();
+    }
+}
+
+// Повідомлення
+function showAddedNotification() {
+    const note = document.createElement('div');
+    note.textContent = 'Товар додано в кошик';
+    note.style.position = 'fixed';
+    note.style.top = '20px';
+    note.style.right = '20px';
+    note.style.background = 'rgba(0,0,0,0.8)';
+    note.style.color = '#fff';
+    note.style.padding = '8px 12px';
+    note.style.borderRadius = '6px';
+    note.style.zIndex = '9999';
+    document.body.appendChild(note);
+    setTimeout(() => note.remove(), 2000);
+}
+
+// Підключення обробників для кнопок "Додати" на карточках
+document.querySelectorAll('.add-to-cart').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const productId = btn.dataset.id;
+        const detailBtn = document.querySelector(`.add-to-cart-detail[data-id="${productId}"]`);
+        const buyBtn = document.querySelector(`.buy-now[data-id="${productId}"]`);
+        addToCart(productId, [btn, detailBtn, buyBtn]);
+    });
+});
+
+
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+
+    // Відкриття модалки (приклад для кнопки "Деталі")
+    document.querySelectorAll('.ps-btn-details').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const card = btn.closest('.product-card');
+            const id = card.dataset.id || card.querySelector('.product-title').textContent.trim();
+            const title = card.querySelector('.product-title').textContent;
+            const modal = document.getElementById('product-modal');
+            modal.dataset.productId = id;
+            modal.querySelector('#modal-title').textContent = title;
+            modal.setAttribute('aria-hidden','false'); // відкриваємо
+        });
+    });
+
+    // Додати в кошик з модалки
+    document.getElementById('modal-add').addEventListener('click', ()=>{
+        const modal = document.getElementById('product-modal');
+        const id = modal.dataset.productId;
+        if(!id) return;
+        
+        let cart = JSON.parse(localStorage.getItem('earstore_cart_v1')||'{}');
+        if(!cart[id]) cart[id]=1;
+        localStorage.setItem('earstore_cart_v1', JSON.stringify(cart));
+
+        // Змінюємо текст кнопок
+        document.getElementById('modal-add').textContent='Додано';
+        document.getElementById('modal-add').disabled=true;
+        document.getElementById('modal-buy').textContent='Куплено';
+        document.getElementById('modal-buy').disabled=true;
+
+        // Синхронізація з кнопкою на карточці
+        const card = document.querySelector(`.product-card[data-id="${id}"]`);
+        if(card){
+            const btn = card.querySelector('.btn-add');
+            if(btn){ btn.textContent='Додано'; btn.disabled=true; }
+        }
+
+        // Оновлення лічильника
+        const counter = document.getElementById('cart-count');
+        if(counter) counter.textContent = Object.keys(cart).length;
+    });
+
+    // Купити з модалки
+    document.getElementById('modal-buy').addEventListener('click', ()=>{
+        document.getElementById('modal-add').click(); // додаємо в кошик
+        document.getElementById('modal-buy').textContent='Куплено';
+    });
+
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+
+    function showToast(message){
+        const toast = document.getElementById('cart-toast');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        setTimeout(()=>{ toast.style.display='none'; }, 2500);
+    }
+
+    // Додати в кошик з модалки
+    document.getElementById('modal-add').addEventListener('click', ()=>{
+        const modal = document.getElementById('product-modal');
+        const id = modal.dataset.productId;
+        if(!id) return;
+
+        let cart = JSON.parse(localStorage.getItem('earstore_cart_v1')||'{}');
+        if(!cart[id]) cart[id]=1;
+        localStorage.setItem('earstore_cart_v1', JSON.stringify(cart));
+
+        // Змінюємо текст кнопок
+        document.getElementById('modal-add').textContent='Додано';
+        document.getElementById('modal-add').disabled=true;
+        document.getElementById('modal-buy').textContent='Куплено';
+        document.getElementById('modal-buy').disabled=true;
+
+        // Синхронізація з кнопкою на карточці
+        const card = document.querySelector(`.product-card[data-id="${id}"]`);
+        if(card){
+            const btn = card.querySelector('.btn-add');
+            if(btn){ btn.textContent='Додано'; btn.disabled=true; }
+        }
+
+        // Оновлення лічильника
+        const counter = document.getElementById('cart-count');
+        if(counter) counter.textContent = Object.keys(cart).length;
+
+        // Показати toast
+        showToast('Товар додано до кошику!');
+    });
+
+    // Купити з модалки
+    document.getElementById('modal-buy').addEventListener('click', ()=>{
+        document.getElementById('modal-add').click(); // додаємо в кошик
+        document.getElementById('modal-buy').textContent='Куплено';
+    });
+});
+</script>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'earstore_cart_v1';
+
+  // ---------- допоміжні ----------
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const slug = s => (s||'').toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
+
+  // ---------- toast (єдиний) ----------
+  function toast(msg){
+    let t = document.getElementById('added-toast');
+    if(!t){
+      t = document.createElement('div');
+      t.id = 'added-toast';
+      Object.assign(t.style, {
+        position:'fixed',
+        right:'16px',
+        top:'16px',
+        zIndex:999999,
+        background:'rgba(0,0,0,0.85)',
+        color:'#fff',
+        padding:'10px 12px',
+        borderRadius:'8px',
+        fontSize:'14px',
+        fontWeight:'600',
+        boxShadow:'0 6px 20px rgba(0,0,0,.35)',
+        transition: 'opacity .25s',
+        opacity: '0',
+        pointerEvents: 'none'
+      });
+      document.body.appendChild(t);
+    }
+    t.textContent = msg || 'Додано в кошик';
+    t.style.opacity = '1';
+    // приховати
+    clearTimeout(t._hideTimeout);
+    t._hideTimeout = setTimeout(()=> { t.style.opacity = '0'; }, 1400);
+  }
+
+  // ---------- localStorage ----------
+  function getCart(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch(e){ return {}; } }
+  function setCart(c){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(c||{})); updateCartCount(); } catch(e){} }
+  function inCart(id){ if(!id) return false; const c = getCart(); return !!c[id]; }
+
+  // ---------- UI helpers ----------
+  function updateCartCount(){
+    const c = getCart();
+    const n = Object.keys(c).length;
+    const el = document.getElementById('cart-count');
+    if (el) el.textContent = String(n);
+  }
+
+  function getPidFromCard(card){
+    if (!card) return null;
+    return card.dataset.productId || card.dataset.id || slug(card.querySelector('.product-title')?.textContent||'');
+  }
+
+  function markCardButtons(pid){
+    if(!pid) return;
+    $$('.product-card').forEach(card=>{
+      const id = getPidFromCard(card);
+      if (id !== pid) return;
+      const addBtn = card.querySelector('.btn-add, .add-to-cart');
+      if (addBtn){
+        addBtn.textContent = 'Додано';
+        addBtn.disabled = true;
+        addBtn.classList.add('added');
+        addBtn.setAttribute('aria-pressed','true');
+      }
+    });
+  }
+
+  function markModalButtons(pid){
+    const modal = document.getElementById('product-modal');
+    if (!modal || modal.dataset.productId !== pid) return;
+    const mAdd = document.getElementById('modal-add');
+    const mBuy = document.getElementById('modal-buy');
+    if (mAdd){ mAdd.textContent='Додано'; mAdd.disabled=true; mAdd.classList.add('added'); }
+    if (mBuy){ mBuy.textContent='Куплено'; mBuy.disabled=true; mBuy.classList.add('bought'); }
+  }
+
+  function resetModalButtonsIfNotInCart(){
+    const modal = document.getElementById('product-modal');
+    if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
+    const pid = modal.dataset.productId;
+    const mAdd = document.getElementById('modal-add');
+    const mBuy = document.getElementById('modal-buy');
+    if (!inCart(pid)){
+      if (mAdd){ mAdd.textContent='Додати в кошик'; mAdd.disabled=false; mAdd.classList.remove('added'); }
+      if (mBuy){ mBuy.textContent='Купити'; mBuy.disabled=false; mBuy.classList.remove('bought'); }
+    } else {
+      markModalButtons(pid);
+    }
+  }
+
+  function syncAllFromCart(){
+    updateCartCount();
+    const c = getCart();
+    Object.keys(c).forEach(pid => markCardButtons(pid));
+    resetModalButtonsIfNotInCart();
+  }
+
+  // ---------- операція додавання ----------
+  function addToCart(pid, meta = {}){
+    if(!pid) return false;
+    const cart = getCart();
+    if(cart[pid]) return false; // вже є
+    cart[pid] = { qty: 1, title: meta.title || '', price: meta.price || '' };
+    setCart(cart);
+    markCardButtons(pid);
+    markModalButtons(pid);
+    toast(meta.title ? `${meta.title} — додано` : 'Товар додано в кошик');
+    return true;
+  }
+
+  // ---------- делегований обробник кліків ----------
+  document.addEventListener('click', (e) => {
+    // 1) кнопка на картці (класи .btn-add або .add-to-cart)
+    const addBtn = e.target.closest && e.target.closest('.btn-add, .add-to-cart');
+    if (addBtn){
+      e.preventDefault && e.preventDefault();
+      const card = addBtn.closest && addBtn.closest('.product-card');
+      const pid = getPidFromCard(card) || addBtn.dataset.id || addBtn.getAttribute('data-id');
+      if (!pid) return;
+      if (addBtn.disabled) return;
+      // миттєво блокуємо, щоб уникнути подвійного кліка
+      addBtn.disabled = true;
+      const title = card?.querySelector('.product-title')?.textContent?.trim() || addBtn.dataset.title || '';
+      const price = card?.dataset.price ? (card.dataset.price + ' ₴') : (card?.querySelector('.price')?.textContent?.trim() || addBtn.dataset.price || '');
+      addToCart(pid, { title, price });
+      return;
+    }
+
+    // 2) кнопка "Додати" в модалці
+    const mAdd = e.target.closest && e.target.closest('#modal-add');
+    if (mAdd){
+      e.preventDefault && e.preventDefault();
+      if (mAdd.disabled) return;
+      const modal = document.getElementById('product-modal');
+      const pid = modal?.dataset.productId;
+      if (!pid) return;
+      mAdd.disabled = true;
+      const title = document.getElementById('modal-title')?.textContent?.trim() || '';
+      const price = document.getElementById('modal-price')?.textContent?.trim() || '';
+      addToCart(pid, { title, price });
+      return;
+    }
+
+    // 3) кнопка "Купити" в модалці — додаємо в кошик і міняємо текст
+    const mBuy = e.target.closest && e.target.closest('#modal-buy');
+    if (mBuy){
+      e.preventDefault && e.preventDefault();
+      if (mBuy.disabled) return;
+      const modal = document.getElementById('product-modal');
+      const pid = modal?.dataset.productId;
+      if (!pid) return;
+      // додаємо в кошик, якщо ще не було
+      addToCart(pid, { title: document.getElementById('modal-title')?.textContent?.trim() || '', price: document.getElementById('modal-price')?.textContent?.trim() || '' });
+      mBuy.textContent = 'Куплено';
+      mBuy.disabled = true;
+      return;
+    }
+  });
+
+  // ---------- ініціалізація ----------
+  document.addEventListener('DOMContentLoaded', ()=> {
+    // гарантуємо, що кнопки на картках мають type="button"
+    $$('.product-card .btn-add, .product-card .add-to-cart').forEach(b => b.type='button');
+
+    // спостерігаємо відкриття модалки (aria-hidden)
+    const modal = document.getElementById('product-modal');
+    if (modal){
+      const obs = new MutationObserver((muts) => {
+        muts.forEach(m => {
+          if (m.attributeName === 'aria-hidden' && modal.getAttribute('aria-hidden') === 'false'){
+            // модалка відкрилась — трохи зачекаємо і синхронізуємо кнопки
+            setTimeout(resetModalButtonsIfNotInCart, 30);
+          }
+        });
+      });
+      obs.observe(modal, { attributes: true });
+    }
+
+    // початкова синхронізація UI з localStorage
+    syncAllFromCart();
+  });
+
+  // для дебагу/маніпуляцій з консолі (опціонально)
+  window.earCart = { getCart, setCart, addToCart, syncAllFromCart };
+
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+
+  const STORAGE_KEY = 'earstore_cart_v1';
+  const TOAST_ID = 'added-popup';
+  const WAIT_MS = 70;     // зачекати, щоб інші скрипти встигли записати в localStorage
+  const COOL_MS = 700;    // антидублювання для одного і того ж товару
+
+  let hideTimer = null;
+  let lastShownByPid = new Map();
+
+  function readCart(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; }
+    catch(e){ return {}; }
+  }
+
+  function ensureToast(){
+    let el = document.getElementById(TOAST_ID);
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = TOAST_ID;
+    Object.assign(el.style, {
+      position:'fixed', right:'18px', top:'18px',
+      background:'rgba(12,12,12,0.95)', color:'#fff',
+      padding:'10px 14px', borderRadius:'8px', zIndex:20000,
+      boxShadow:'0 6px 24px rgba(0,0,0,0.45)',
+      opacity:'0', transform:'translateY(-6px)',
+      transition:'opacity .18s ease, transform .18s ease',
+      pointerEvents:'none', fontWeight:'700', maxWidth:'360px', textAlign:'center'
+    });
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function showToast(msg, duration=2000, pid){
+    const el = ensureToast();
+    const now = Date.now();
+    if (pid){
+      const last = lastShownByPid.get(pid) || 0;
+      if (now - last < COOL_MS) return;
+      lastShownByPid.set(pid, now);
+    }
+    el.textContent = msg || 'Товар додано в кошик';
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+    el.style.pointerEvents = 'auto';
+    el.classList.add('show');
+
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(()=>{
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-6px)';
+      el.style.pointerEvents = 'none';
+      el.classList.remove('show');
+    }, duration);
+  }
+
+  function handleModalAdd(){
+    const modal = document.getElementById('product-modal');
+    if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
+
+    const pid = modal.dataset.productId || '';
+    const title = (modal.querySelector('#modal-title')?.textContent || '').trim();
+    const before = readCart();
+
+    // чекаємо, поки інші скрипти додадуть товар у localStorage
+    setTimeout(()=>{
+      const after = readCart();
+      const actuallyAdded = pid ? (!before[pid] && !!after[pid]) : true;
+
+      if (actuallyAdded){
+        const msg = title ? `${title} — додано в кошик` : 'Товар додано в кошик';
+        showToast(msg, 2000, pid || title || 'unknown');
+      }
+    }, WAIT_MS);
+  }
+
+  // Ловимо саме кліки по #modal-add всередині модалки. Кнопки “Купити” та карточок ігноруємо.
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest?.('#modal-add');
+    if (!btn) return;
+    if (!btn.closest('#product-modal')) return; // безпека
+    handleModalAdd();
+  }, true); // capture, щоб спрацювати навіть якщо інші скрипти зупиняють подію
+
+})();
+</script>
+<script>
+(function(){
+  // debounce
+  function debounce(fn, ms=120){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
+
+  // універсальна функція для одного набору (products / offers)
+  function setupFilter(prefix){
+    const form = document.getElementById('filter-form-' + prefix);
+    if (!form) return;
+    const section = form.closest('section') || document;
+    // знайдемо грід в тій секції (клас .grid або .offers-grid)
+    const grid = section.querySelector('.grid') || section.querySelector('.offers-grid') || section.querySelector('.catalog-grid');
+    if (!grid) return;
+
+    const cards = Array.from(grid.querySelectorAll('.product-card'));
+    if (!cards.length) return;
+
+    // зберігаємо початковий порядок
+    cards.forEach((c,i)=> c.dataset._origIndex = String(i));
+
+    const inputMin = document.getElementById('price-min-' + prefix);
+    const inputMax = document.getElementById('price-max-' + prefix);
+    const sortSelect = document.getElementById('sort-select-' + prefix);
+
+    function parsePrice(v){
+      if (v === undefined || v === null) return NaN;
+      const s = String(v).replace(/\s+/g,'').replace(/[^\d.-]/g,'');
+      const n = Number(s);
+      return isNaN(n) ? NaN : n;
+    }
+
+    function cardPrice(card){
+      // спочатку data-price
+      if (card.dataset && card.dataset.price) return parsePrice(card.dataset.price);
+      // або текст з .price
+      const el = card.querySelector('.price');
+      if (el) return parsePrice(el.textContent || el.innerText);
+      return NaN;
+    }
+
+    function applyFilterAndSort(){
+      const min = inputMin && inputMin.value !== '' ? Number(inputMin.value) : null;
+      const max = inputMax && inputMax.value !== '' ? Number(inputMax.value) : null;
+      const sort = sortSelect ? sortSelect.value : 'none';
+
+      // фільтрація
+      let visible = cards.filter(card => {
+        const p = cardPrice(card);
+        if (isNaN(p)) return true; // якщо ціни немає — показувати
+        if (min !== null && p < min) return false;
+        if (max !== null && p > max) return false;
+        return true;
+      });
+
+      // сортування
+      if (sort === 'price-asc' || sort === 'price-desc'){
+        visible.sort((a,b)=>{
+          const pa = isNaN(cardPrice(a)) ? 0 : cardPrice(a);
+          const pb = isNaN(cardPrice(b)) ? 0 : cardPrice(b);
+          return sort === 'price-asc' ? pa - pb : pb - pa;
+        });
+      } else {
+        // повернути початковий порядок
+        visible.sort((a,b)=> Number(a.dataset._origIndex) - Number(b.dataset._origIndex));
+      }
+
+      // Оновлюємо DOM: вставляємо видимі у потрібному порядку; сховаємо інші
+      // Спосіб: додаємо/знімаємо клас hidden та переставляємо видимі
+      const visibleSet = new Set(visible);
+      cards.forEach(c => {
+        if (visibleSet.has(c)) c.classList.remove('hidden');
+        else c.classList.add('hidden');
+      });
+
+      // переставимо видимі в новому порядку (щоб сортування відобразилося)
+      visible.forEach(c => grid.appendChild(c));
+
+      // (опціонально) оновити лічильник видимих
+      const countEl = document.getElementById(prefix + '-visible-count');
+      if (countEl) countEl.textContent = visible.length;
+    }
+
+    const debounced = debounce(applyFilterAndSort, 80);
+    if (inputMin) inputMin.addEventListener('input', debounced);
+    if (inputMax) inputMax.addEventListener('input', debounced);
+    if (sortSelect) sortSelect.addEventListener('change', debounced);
+    form.addEventListener('submit', (e)=>{ e.preventDefault(); applyFilterAndSort(); });
+
+    // початковий виклик
+    applyFilterAndSort();
+  }
+
+  // Підключити для products і offers (як у твоєму HTML)
+  ['products','offers'].forEach(setupFilter);
+
+})();
+</script>
+<script>
+(function(){
+  const form = document.getElementById('fake-form');
+  if (!form) return;
+
+  // create toast element once
+  function createToast(){
+    let t = document.getElementById('__toast_notice');
+    if (t) return t;
+    t = document.createElement('div');
+    t.id = '__toast_notice';
+    t.className = 'toast-notice';
+    t.innerHTML = '<div class="icon">✓</div><div class="text">Запит надіслано</div>';
+    document.body.appendChild(t);
+    return t;
+  }
+
+  function showToast(text='Запит надіслано', ms=3500){
+    const t = createToast();
+    t.querySelector('.text').textContent = text;
+    t.classList.add('show');
+    // remove previous timeout if any
+    if (t._hideTimeout) clearTimeout(t._hideTimeout);
+    t._hideTimeout = setTimeout(()=> {
+      t.classList.remove('show');
+    }, ms);
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    // native validity check
+    if (!form.checkValidity()) {
+      // Let browser show validation UI — but we can focus the first invalid field
+      const invalid = form.querySelector(':invalid');
+      if (invalid) invalid.focus();
+      return;
+    }
+
+    // --- here you can send data to server via fetch/XHR if needed ---
+    // Simulate successful send:
+    // show small toast
+    showToast('Запит надіслано');
+
+    // optionally show your #fake-success block (if present)
+    const block = document.getElementById('fake-success');
+    if (block) {
+      block.classList.remove('hidden');
+      // auto-hide after same interval
+      setTimeout(()=> block.classList.add('hidden'), 3500);
+    }
+
+    // clear form fields (optional). Якщо не треба — закоментуй.
+    form.reset();
+
+    // доступність: повідомити екранним рідерам
+    const live = document.getElementById('__toast_live');
+    if (!live) {
+      const lv = document.createElement('div');
+      lv.id = '__toast_live';
+      lv.setAttribute('aria-live','polite');
+      lv.setAttribute('aria-atomic','true');
+      lv.style.position = 'absolute';
+      lv.style.left = '-9999px';
+      document.body.appendChild(lv);
+      lv.textContent = ' ';
+    }
+    document.getElementById('__toast_live').textContent = 'Запит надіслано';
+  });
+})();
+</script>
+<!-- ВСТАВТЬТЕ ЦЕЙ <script> БЛОК ВНИЗ index.html ПЕРЕД </body> -->
+<!-- ВСТАВТЕ ЦЕЙ БЛОК ПЕРЕД </body> В index.html -->
+ <!-- ВСТАВТЕ ЦЕЙ <script> БЛОК ПЕРЕД </body> У index.html -->
